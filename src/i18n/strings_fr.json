@@ -312,7 +312,7 @@
       "trackSelected": "Suivre l'objet sélectionné en le gardant centré au fil du temps",
       "measureTool": "Outil de distance angulaire",
       "measureToolHelp": "Cliquez deux points ou objets pour mesurer l'angle entre eux. Cliquez le ciel vide pour effacer.",
-      "infoButton": "Info — how to use this simulation",
+      "infoButton": "Info — comment utiliser cette simulation",
       "resetAll": "Tout réinitialiser"
     }
   },
