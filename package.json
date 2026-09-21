@@ -46,12 +46,12 @@
     "scenerystack": "^3.0.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.13",
+    "@biomejs/biome": "^2.5.14",
     "@playwright/test": "^1.63.0",
-    "@types/node": "^24.13.4",
-    "@vitest/coverage-v8": "^5.0.0",
-    "happy-dom": "^20.14.3",
-    "jsdom": "^30.0.1",
+    "@types/node": "^24.13.5",
+    "@vitest/coverage-v8": "^5.0.1",
+    "happy-dom": "^20.14.5",
+    "jsdom": "^30.1.0",
     "playwright": "^1.62.1",
     "png-to-ico": "^3.0.2",
     "sharp": "^0.35.4",
