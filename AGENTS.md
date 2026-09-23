@@ -1,6 +1,6 @@
-# CLAUDE.md — Zenith
+# AGENTS.md — Zenith
 
-Sim-specific context for AI assistants. General SceneryStack guidance: [OpenLyceum/.github/CLAUDE.md](https://github.com/OpenLyceum/.github/CLAUDE.md).
+Sim-specific context for AI assistants. General SceneryStack guidance: [OpenLyceum/.github/AGENTS.md](https://github.com/OpenLyceum/.github/AGENTS.md).
 
 ## Project
 
