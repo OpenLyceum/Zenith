@@ -2,8 +2,11 @@
  * ZenithPreferencesModel.ts
  *
  * Model for the simulation-specific preferences shown in Preferences →
- * Simulation. Overlay toggles (star names, constellation lines, planet labels)
- * take their initial values from zenithQueryParameters and outlive Reset All.
+ * Simulation. Each preference Property takes its initial value from the
+ * corresponding query parameter in zenithQueryParameters.
+ *
+ * Overlay toggles (star names, constellation lines, planet labels) outlive
+ * Reset All, so this model has no reset().
  */
 
 import { BooleanProperty } from "scenerystack/axon";
