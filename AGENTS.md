@@ -40,7 +40,7 @@ SceneryStack **first-person planetarium** for the night sky. Observer location, 
 - Civil time is bounded by `CIVIL_TIME_MS_RANGE` (derived from `CIVIL_YEAR_RANGE`, 1900–2100). Route every write that could leave that span through `setCivilTimeMs()`; the `date` query parameter rejects out-of-range epochs rather than clamping them.
 - `epochPresetProperty` only flips to `CUSTOM` once civil time is a full minute off the preset — the timer starts playing, so a tighter test would mark it CUSTOM on the first frame and the combo could never show a preset.
 - Reset All restores model Properties but **not** preference-backed overlays (`showStarLabels`, `showConstellations`, `showPlanetLabels`, `deepStarCatalog`).
-- Planet positions use `astronomy-engine` only through `PlanetEphemeris.ts`; equatorial↔horizontal transforms are intentionally hand-rolled (see [doc/astronomy-engine.md](doc/astronomy-engine.md)).
+- Planet positions use `astronomy-engine` only through `PlanetEphemeris.ts`; equatorial↔horizontal transforms are intentionally hand-rolled.
 - Default sky: Boulder (40° N, 105° W), 2024-06-21 18:00 UTC, look south 30° alt, 140° FOV.
 
 ## Accessibility

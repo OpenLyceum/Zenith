@@ -3,7 +3,7 @@
 Developer guide to architecture, model state, projection, and extension points.
 For the pedagogical / classroom description of what the sim models, see
 [model.md](./model.md). Template multi-screen patterns:
-[multi-screen.md](./multi-screen.md).
+[SceneryStackTemplate `doc/multi-screen.md`](https://github.com/OpenLyceum/SceneryStackTemplate/blob/main/doc/multi-screen.md).
 
 ---
 
@@ -173,8 +173,8 @@ off keeps a night sky with stars fully visible.
 Shared transform: `equatorialToHorizontal` in `src/common/sky/SkyCoordinates.ts`.
 `PlanetEphemeris.ts` is the only `astronomy-engine` import boundary; the rest of
 `src/common/sky/` is intentionally hand-rolled for per-frame throughput and J2000
-frame consistency — see [astronomy-engine.md](./astronomy-engine.md) before
-refactoring it to "just use the library."
+frame consistency. Keep that boundary; do not replace the hand-rolled transforms
+with direct `astronomy-engine` calls.
 
 ---
 
