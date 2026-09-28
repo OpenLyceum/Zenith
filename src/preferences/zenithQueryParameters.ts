@@ -173,6 +173,5 @@ ZenithNamespace.register("zenithQueryParameters", zenithQueryParameters);
 
 // Log query parameters (for the console / PhET-iO).
 logGlobal("phet.chipper.queryParameters");
-logGlobal("phet.zenith.zenithQueryParameters");
 
 export default zenithQueryParameters;
