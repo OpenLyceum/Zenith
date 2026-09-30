@@ -5,9 +5,10 @@
  * (including past layoutBounds); observer / time / display controls overlay it.
  */
 
-import { BooleanProperty, PatternStringProperty } from "scenerystack/axon";
+import { BooleanProperty } from "scenerystack/axon";
 import { type Bounds2, toFixed } from "scenerystack/dot";
 import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
+import { StringUtils } from "scenerystack/phetcommon";
 import { GridBox, HBox, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { InfoButton, NumberControl, PhetFont, ResetAllButton } from "scenerystack/scenery-phet";
 import type { ScreenViewOptions } from "scenerystack/sim";
@@ -333,7 +334,7 @@ export class ZenithScreenView extends ScreenView {
       accessibleHelpText: a11y.controls.observerLocationMapHelpStringProperty,
     });
 
-    // "Use my location": device geolocation with a coarse network fallback.
+    // "Use my location": browser geolocation only (no third-party IP lookup).
     const useMyLocationButton = new RectangularPushButton({
       ...FLAT_RECTANGULAR_BUTTON_OPTIONS,
       content: new Text(controls.useMyLocationStringProperty, {
@@ -352,8 +353,10 @@ export class ZenithScreenView extends ScreenView {
             const lon = LONGITUDE_RANGE.constrainValue(Math.round(longitudeDeg * 10) / 10);
             model.latitudeProperty.value = lat;
             model.longitudeProperty.value = lon;
+            // One-shot announcement: a plain filled-in string, not a per-click
+            // PatternStringProperty that would never be disposed.
             useMyLocationButton.addAccessibleResponse(
-              new PatternStringProperty(a11y.controls.useMyLocationSuccessStringProperty, {
+              StringUtils.fillIn(a11y.controls.useMyLocationSuccessStringProperty.value, {
                 lat: toFixed(lat, 1),
                 lon: toFixed(lon, 1),
               }),

@@ -5,7 +5,7 @@
  */
 
 import { Bounds2, Vector2 } from "scenerystack/dot";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { equatorialToHorizontal, horizontalToEquatorial } from "../src/common/sky/SkyCoordinates.js";
 import { ZenithPreferencesModel } from "../src/preferences/ZenithPreferencesModel.js";
 import { SELECTION_HIT_RADIUS_PX } from "../src/ZenithConstants.js";
@@ -186,5 +186,21 @@ describe("PlanetariumSkyNode", () => {
       const staleHit = skyNode.findNearestObject(pointBefore);
       expect(staleHit?.id === star.id).toBe(false);
     }
+  });
+
+  it("rebuilds the alt/az frame layers only when the frame moves, not when time advances", () => {
+    // Private hook: the alt/az grid is the costliest frame-anchored layer.
+    const gridShapeSpy = vi.spyOn(skyNode as unknown as { altAzGridShape: () => unknown }, "altAzGridShape");
+    model.showGridProperty.value = true;
+    skyNode.updateDirty();
+    expect(gridShapeSpy).toHaveBeenCalledTimes(1);
+
+    model.advanceCivilTimeHours(1);
+    skyNode.updateDirty();
+    expect(gridShapeSpy).toHaveBeenCalledTimes(1);
+
+    model.lookToward(90, 20);
+    skyNode.updateDirty();
+    expect(gridShapeSpy).toHaveBeenCalledTimes(2);
   });
 });

@@ -34,7 +34,7 @@ main.ts
             └─ ZenithKeyboardHelpContent
 
 src/zenith-screen/model/objectSearch.ts     search ranking (unit-tested)
-src/common/resolveObserverLocation.ts       geolocation + IP fallback
+src/common/resolveObserverLocation.ts       browser geolocation (no IP fallback)
 src/common/ZenithControlOptions.ts          shared control theming
 src/zenith-screen/model/EarthShoreData.ts   location-panel coastline
 
@@ -78,7 +78,7 @@ in TypeScript with Scenery nodes (no WASM / HiPS). Planet positions use
 | `latitudeProperty` | degrees (+N) | Observer latitude |
 | `longitudeProperty` | degrees (+E) | Observer longitude |
 | `civilTimeMsProperty` | ms (UTC epoch) | Advances while playing; drives ephemerides |
-| `localSiderealTimeHoursProperty` | hours `[0, 24)` | Synced from GAST + longitude |
+| `localSiderealTimeHoursProperty` | hours `[0, 24)` | Derived (via `skySnapshotProperty`) from GAST + longitude |
 | `lookAzimuthDegProperty` | degrees (N→E) | FOV center azimuth |
 | `lookAltitudeDegProperty` | degrees | FOV center altitude `[-90, 90]` (clamped to `[0, 90]` when horizon is shown) |
 | `fieldOfViewDegProperty` | degrees | Horizontal FOV |

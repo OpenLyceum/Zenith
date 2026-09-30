@@ -71,9 +71,14 @@ const MS_PER_MINUTE = 60 * 1000;
 /**
  * Single instantaneous ephemeris for the whole solar system at one civil time /
  * observer, so every view consumer reads one computation instead of each
- * recomputing all bodies through astronomy-engine.
+ * recomputing all bodies through astronomy-engine. Carries the observer latitude
+ * and local sidereal time it was computed for, so consumers that turn equatorial
+ * positions into horizontal ones see one consistent instant rather than a fresh
+ * ephemeris paired with a not-yet-updated LST (or vice versa).
  */
 export type SkySnapshot = {
+  readonly latitudeDeg: number;
+  readonly localSiderealTimeHours: number;
   readonly bodies: ReadonlyArray<{ bodyId: PlanetBodyId; state: PlanetEquatorialState }>;
   readonly byId: ReadonlyMap<PlanetBodyId, PlanetEquatorialState>;
   readonly moonPhase: MoonPhaseState;
@@ -118,10 +123,10 @@ export class ZenithModel implements TModel {
   public readonly civilTimeMsProperty: NumberProperty;
 
   /**
-   * Local sidereal time in hours, wrapped to [0, 24).
-   * Synced from civil time + longitude (not an independent free clock).
+   * Local sidereal time in hours, wrapped to [0, 24). Derived from civil time +
+   * longitude via {@link skySnapshotProperty} (not an independent free clock).
    */
-  public readonly localSiderealTimeHoursProperty: NumberProperty;
+  public readonly localSiderealTimeHoursProperty: TReadOnlyProperty<number>;
 
   /** View center azimuth in degrees (N=0 → E). */
   public readonly lookAzimuthDegProperty: NumberProperty;
@@ -245,8 +250,8 @@ export class ZenithModel implements TModel {
    * Teardown functions for the lazyLinks and the tracker Multilink created in the
    * constructor. Held so {@link dispose} can detach them; without this, model
    * Properties would keep firing into stale listeners after the model is torn down.
-   * The four {@link DerivedProperty}s (measureSeparation, timeRate, skySnapshot,
-   * solarAltitude) are disposed directly by reference.
+   * The five {@link DerivedProperty}s (measureSeparation, timeRate, skySnapshot,
+   * localSiderealTime, solarAltitude) are disposed directly by reference.
    */
   private readonly disposers: (() => void)[] = [];
 
@@ -272,7 +277,6 @@ export class ZenithModel implements TModel {
       range: LONGITUDE_RANGE,
     });
     this.civilTimeMsProperty = new NumberProperty(CIVIL_TIME_MS_RANGE.constrainValue(startCivilMs));
-    this.localSiderealTimeHoursProperty = new NumberProperty(localSiderealTimeHours(startCivilMs, startLon));
     this.lookAzimuthDegProperty = new NumberProperty(DEFAULT_LOOK_AZIMUTH_DEG);
     this.lookAltitudeDegProperty = new NumberProperty(DEFAULT_LOOK_ALTITUDE_DEG, {
       range: LOOK_ALTITUDE_RANGE,
@@ -328,28 +332,31 @@ export class ZenithModel implements TModel {
       (civilMs, lat, lon): SkySnapshot => {
         const bodies = allPlanetEquatorialStates(civilMs, lat, lon);
         const byId = new Map<PlanetBodyId, PlanetEquatorialState>(bodies.map((b) => [b.bodyId, b.state]));
-        return { bodies, byId, moonPhase: moonPhaseState(civilMs) };
+        return {
+          latitudeDeg: lat,
+          localSiderealTimeHours: localSiderealTimeHours(civilMs, lon),
+          bodies,
+          byId,
+          moonPhase: moonPhaseState(civilMs),
+        };
       },
     );
 
-    this.solarAltitudeDegProperty = new DerivedProperty(
-      [this.skySnapshotProperty, this.latitudeProperty, this.localSiderealTimeHoursProperty],
-      (snapshot, lat, lst) => {
-        const sun = snapshot.byId.get("sun");
-        if (!sun) {
-          return 0;
-        }
-        return equatorialToHorizontal(sun.raHours, sun.decDeg, lat, lst).altDeg;
-      },
+    this.localSiderealTimeHoursProperty = new DerivedProperty(
+      [this.skySnapshotProperty],
+      (snapshot) => snapshot.localSiderealTimeHours,
     );
 
-    // Keep LST aligned when the user changes longitude without advancing time.
-    const onLongitude = (): void => this.syncLocalSiderealTime();
-    const onCivilTime = (): void => this.syncLocalSiderealTime();
-    this.longitudeProperty.lazyLink(onLongitude);
-    this.civilTimeMsProperty.lazyLink(onCivilTime);
-    this.disposers.push(() => this.longitudeProperty.unlink(onLongitude));
-    this.disposers.push(() => this.civilTimeMsProperty.unlink(onCivilTime));
+    // Reads latitude and LST from the snapshot itself so one time / location change
+    // recomputes this once, with no stale-LST intermediate value.
+    this.solarAltitudeDegProperty = new DerivedProperty([this.skySnapshotProperty], (snapshot) => {
+      const sun = snapshot.byId.get("sun");
+      if (!sun) {
+        return 0;
+      }
+      return equatorialToHorizontal(sun.raHours, sun.decDeg, snapshot.latitudeDeg, snapshot.localSiderealTimeHours)
+        .altDeg;
+    });
 
     const onLocationPreset = (preset: LocationPreset): void => {
       if (preset === LocationPreset.CUSTOM) {
@@ -378,7 +385,6 @@ export class ZenithModel implements TModel {
       this.applyingPreset = true;
       this.civilTimeMsProperty.value = civilMs;
       this.applyingPreset = false;
-      this.syncLocalSiderealTime();
     };
     this.epochPresetProperty.lazyLink(onEpochPreset);
     this.disposers.push(() => this.epochPresetProperty.unlink(onEpochPreset));
@@ -417,16 +423,11 @@ export class ZenithModel implements TModel {
 
     // Keep the look centered on the selected object while tracking. Fires on link
     // so enabling Track re-centers immediately, then re-fires as time / location
-    // moves the object across the sky.
+    // moves the object across the sky. Latitude and LST come from the snapshot so
+    // a single time step re-aims the camera once, not once per changed input.
     const trackerMultilink = Multilink.multilink(
-      [
-        this.trackSelectedObjectProperty,
-        this.selectedObjectProperty,
-        this.skySnapshotProperty,
-        this.latitudeProperty,
-        this.localSiderealTimeHoursProperty,
-      ],
-      (tracking, selected, _snapshot, lat, lst) => {
+      [this.trackSelectedObjectProperty, this.selectedObjectProperty, this.skySnapshotProperty],
+      (tracking, selected, snapshot) => {
         if (!(tracking && selected)) {
           return;
         }
@@ -434,7 +435,12 @@ export class ZenithModel implements TModel {
         if (!eq) {
           return;
         }
-        const { altDeg, azDeg } = equatorialToHorizontal(eq.raHours, eq.decDeg, lat, lst);
+        const { altDeg, azDeg } = equatorialToHorizontal(
+          eq.raHours,
+          eq.decDeg,
+          snapshot.latitudeDeg,
+          snapshot.localSiderealTimeHours,
+        );
         this.trackingLook = true;
         this.lookToward(azDeg, altDeg);
         this.trackingLook = false;
@@ -519,18 +525,9 @@ export class ZenithModel implements TModel {
     );
   }
 
-  /** Recompute LST from civil time + longitude. */
-  public syncLocalSiderealTime(): void {
-    this.localSiderealTimeHoursProperty.value = localSiderealTimeHours(
-      this.civilTimeMsProperty.value,
-      this.longitudeProperty.value,
-    );
-  }
-
   /** Advances civil time by `hours` (educational scrub / Ctrl-drag). */
   public advanceCivilTimeHours(hours: number): void {
     this.setCivilTimeMs(this.civilTimeMsProperty.value + hours * MS_PER_HOUR);
-    this.syncLocalSiderealTime();
   }
 
   /**
@@ -586,7 +583,7 @@ export class ZenithModel implements TModel {
     this.timer.reset();
 
     // Location, epoch, and civil time are interdependent: reset them together
-    // under the preset guard so the CUSTOM markers don't fire, then re-derive LST.
+    // under the preset guard so the CUSTOM markers don't fire.
     this.applyingPreset = true;
     this.locationPresetProperty.reset();
     this.epochPresetProperty.reset();
@@ -594,7 +591,6 @@ export class ZenithModel implements TModel {
     this.longitudeProperty.reset();
     this.civilTimeMsProperty.reset();
     this.applyingPreset = false;
-    this.syncLocalSiderealTime();
 
     // Every independent Property that resets unconditionally. Preference-backed
     // overlays (star names, constellations, planet labels, deep catalog) are
@@ -659,7 +655,8 @@ export class ZenithModel implements TModel {
     this.measureSeparationDegProperty.dispose();
     this.timeRateProperty.dispose();
     this.solarAltitudeDegProperty.dispose();
-    // skySnapshotProperty is a dependency of solarAltitudeDegProperty, so dispose it last.
+    this.localSiderealTimeHoursProperty.dispose();
+    // skySnapshotProperty is a dependency of solarAltitude / LST, so dispose it last.
     this.skySnapshotProperty.dispose();
     this.timer.dispose();
   }

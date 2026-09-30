@@ -103,10 +103,9 @@ south at a modest altitude — a natural outdoor “looking up” pose.
 
 - **Object name search** (top-center) — type-ahead over **47 named entries** (38 curated bright stars +
   9 solar-system bodies). Enter selects and enables tracking.
-- **"Use my location"** — browser geolocation, with a coarse third-party IP-address
-  lookup as a fallback when the browser cannot answer. Pressing the button is what
-  triggers the request; declining the browser permission prompt stops there, with no
-  IP fallback. Worth knowing before using it on a classroom machine.
+- **"Use my location"** — browser geolocation only; pressing the button is what
+  triggers the permission prompt. If the browser cannot answer or permission is
+  declined, latitude and longitude are left for the learner to set.
 - **N / P** — cycle only among named stars and planets currently in the field of view.
 
 ### Coordinate systems (overlays)

@@ -21,10 +21,8 @@ Vite 8, TypeScript 7, and Biome 2.
 - Observer latitude/longitude, civil UTC time, and derived local sidereal time with play / pause / speed
 - English, Spanish, and French localization via `StringManager`
 - Deep-link startup via query params (`lat`, `lon`, `date` — 1900–2100, `fov`, `magLimit`)
-- Optional "Use my location": browser geolocation, falling back to a third-party IP lookup
-  (`get.geojs.io`, then `ipapi.co`) when the browser cannot answer. An explicit permission
-  denial is honoured with no fallback, and the button is the only thing that makes either
-  request — nothing is sent at startup, and the rest of the sim runs fully offline.
+- Optional "Use my location": browser geolocation only, requested when the button is pressed.
+  Nothing is sent at startup, no third-party service is contacted, and the sim runs fully offline.
 - Default (night-sky) and projector color profiles
 - Progressive Web App (installable, offline-capable)
 - Git hooks for Biome pre-commit checks

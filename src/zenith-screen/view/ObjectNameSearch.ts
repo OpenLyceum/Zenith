@@ -12,7 +12,8 @@
  * `objectSearch.ts` so it can be unit-tested without Scenery.
  */
 
-import { DerivedProperty, Multilink, PatternStringProperty, Property, type TReadOnlyProperty } from "scenerystack/axon";
+import { DerivedProperty, Multilink, Property, type TReadOnlyProperty } from "scenerystack/axon";
+import { StringUtils } from "scenerystack/phetcommon";
 import type { OneKeyStroke } from "scenerystack/scenery";
 import { Color, KeyboardListener, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
@@ -98,8 +99,10 @@ export class ObjectNameSearch extends Node {
     const choose = (entry: Entry): void => {
       model.selectedObjectProperty.value = entry.selected;
       model.trackSelectedObjectProperty.value = true;
+      // A one-shot announcement: fill in a plain string rather than allocating a
+      // PatternStringProperty per selection that would never be disposed.
       this.addAccessibleResponse(
-        new PatternStringProperty(a11y.searchSelectedAndTrackingStringProperty, { name: entry.nameProperty }),
+        StringUtils.fillIn(a11y.searchSelectedAndTrackingStringProperty.value, { name: entry.nameProperty.value }),
       );
       queryProperty.value = "";
       highlightIndexProperty.value = 0;

@@ -1,115 +1,23 @@
 /**
  * resolveObserverLocation.ts
  *
- * Best-effort "where am I" for the observer-location controls. Tries the browser
- * Geolocation API first when it exists and Permissions-Policy allows it (GPS /
- * Wi-Fi / cell; asks the user once). If that is unavailable, blocked by policy, or
- * fails for a non-permission reason, it falls back to a coarse IP-based lookup
- * that needs no permission. An explicit permission denial is respected — no silent
- * IP fallback in that case.
+ * Best-effort "where am I" for the observer-location controls, via the browser
+ * Geolocation API (GPS / Wi-Fi / cell; asks the user once). There is deliberately
+ * no third-party IP-lookup fallback: the sim's CSP `connect-src` is `'self' blob:`,
+ * and sending the learner's IP to an outside service is not worth the coarse
+ * answer. When geolocation is unavailable, blocked by policy, denied, or fails,
+ * the promise rejects and the learner sets latitude / longitude manually.
  *
- * Do not call `getCurrentPosition` when the policy would block it, and do not
- * `fetch` a URL that `connect-src` would refuse: Chromium logs both as
- * console.error, which Playwright fuzz treats as failure.
+ * Do not call `getCurrentPosition` when Permissions-Policy would block it:
+ * Chromium logs that as console.error, which Playwright fuzz treats as failure.
  *
  * Approximate accuracy is intentional: we only need the observer's rough place on
  * Earth, so `enableHighAccuracy` stays off to keep the request fast and unintrusive.
  */
 
-export type LocationSource = "device" | "network";
-
 export type ResolvedLocation = {
   latitudeDeg: number;
   longitudeDeg: number;
-  source: LocationSource;
-};
-
-/** Coarse, keyless, CORS-enabled IP-geolocation endpoints, tried in order. */
-const IP_ENDPOINTS: ReadonlyArray<{ url: string; parse: (json: unknown) => ResolvedLocation | null }> = [
-  {
-    url: "https://get.geojs.io/v1/ip/geo.json",
-    parse: (json) => coordsFrom(json, "latitude", "longitude"),
-  },
-  {
-    url: "https://ipapi.co/json/",
-    parse: (json) => coordsFrom(json, "latitude", "longitude"),
-  },
-];
-
-/**
- * Extra `connect-src` origins beyond `'self' blob:`. Must stay empty unless
- * `vite.config.ts` lists the same hosts — otherwise Chromium console.errors a
- * CSP violation and `?fuzz` fails.
- */
-const CONNECT_SRC_EXTRA_ORIGINS: readonly string[] = [];
-
-/** Whether a `fetch(url)` is allowed by this sim's CSP `connect-src`. */
-export const canConnectToUrl = (url: string): boolean => {
-  try {
-    const parsed = new URL(url, typeof location === "undefined" ? "http://localhost/" : location.href);
-    if (parsed.protocol === "blob:") {
-      return true;
-    }
-    if (typeof location !== "undefined" && parsed.origin === location.origin) {
-      return true;
-    }
-    return CONNECT_SRC_EXTRA_ORIGINS.includes(parsed.origin);
-  } catch {
-    return false;
-  }
-};
-
-const isFiniteNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
-
-/** Pulls lat/lon out of a JSON object, accepting numbers or numeric strings. */
-const coordsFrom = (json: unknown, latKey: string, lonKey: string): ResolvedLocation | null => {
-  if (!json || typeof json !== "object") {
-    return null;
-  }
-  const record = json as Record<string, unknown>;
-  const lat = Number(record[latKey]);
-  const lon = Number(record[lonKey]);
-  if (!(isFiniteNumber(lat) && isFiniteNumber(lon))) {
-    return null;
-  }
-  return { latitudeDeg: lat, longitudeDeg: lon, source: "network" };
-};
-
-/** Fetches JSON from `url`, aborting after `timeoutMs`. */
-const fetchJson = async (url: string, timeoutMs: number): Promise<unknown> => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { signal: controller.signal, credentials: "omit" });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    return await response.json();
-  } finally {
-    clearTimeout(timer);
-  }
-};
-
-/** Tries each IP endpoint until one yields usable coordinates. */
-const resolveViaIp = async (): Promise<ResolvedLocation> => {
-  if (typeof fetch === "undefined") {
-    throw new Error("fetch unavailable");
-  }
-  const allowed = IP_ENDPOINTS.filter((endpoint) => canConnectToUrl(endpoint.url));
-  if (allowed.length === 0) {
-    throw new Error("IP geolocation blocked by CSP");
-  }
-  for (const endpoint of allowed) {
-    try {
-      const parsed = endpoint.parse(await fetchJson(endpoint.url, 6000));
-      if (parsed) {
-        return parsed;
-      }
-    } catch {
-      // Try the next endpoint.
-    }
-  }
-  throw new Error("IP geolocation failed");
 };
 
 type FeaturePolicyQuery = {
@@ -149,11 +57,11 @@ const isGeolocationCallable = (): boolean => {
   }
 };
 
-/** Resolves the observer's approximate location, or rejects if every method fails. */
+/** Resolves the observer's approximate location, or rejects if geolocation can't answer. */
 export const resolveObserverLocation = (): Promise<ResolvedLocation> =>
   new Promise<ResolvedLocation>((resolve, reject) => {
     if (!isGeolocationCallable()) {
-      resolveViaIp().then(resolve, reject);
+      reject(new Error("Geolocation unavailable"));
       return;
     }
 
@@ -163,19 +71,11 @@ export const resolveObserverLocation = (): Promise<ResolvedLocation> =>
           resolve({
             latitudeDeg: position.coords.latitude,
             longitudeDeg: position.coords.longitude,
-            source: "device",
           }),
-        (error) => {
-          // Honor an explicit "no"; otherwise a coarse network lookup is fair game.
-          if (error.code === error.PERMISSION_DENIED) {
-            reject(error);
-          } else {
-            resolveViaIp().then(resolve, () => reject(error));
-          }
-        },
+        reject,
         { enableHighAccuracy: false, timeout: 12000, maximumAge: 10 * 60 * 1000 },
       );
-    } catch {
-      resolveViaIp().then(resolve, reject);
+    } catch (error) {
+      reject(error);
     }
   });

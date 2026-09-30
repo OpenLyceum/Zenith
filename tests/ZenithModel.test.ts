@@ -233,6 +233,48 @@ describe("ZenithModel", () => {
     expect(model.trackSelectedObjectProperty.value).toBe(true);
   });
 
+  it("a time step re-aims the tracker once, never through a stale LST", () => {
+    // A planet, not a star: its position comes from the ephemeris snapshot, so a
+    // fresh snapshot paired with a stale LST would aim somewhere wrong first.
+    model.showHorizonProperty.value = false;
+    model.selectedObjectProperty.value = { kind: "planet", id: "moon" };
+    model.trackSelectedObjectProperty.value = true;
+
+    const azimuthWrites: number[] = [];
+    model.lookAzimuthDegProperty.lazyLink((az) => azimuthWrites.push(az));
+    model.advanceSiderealTime(1);
+
+    expect(azimuthWrites).toHaveLength(1);
+    const moon = model.skySnapshotProperty.value.byId.get("moon");
+    expect(moon).toBeDefined();
+    if (moon) {
+      const { azDeg } = equatorialToHorizontal(
+        moon.raHours,
+        moon.decDeg,
+        model.latitudeProperty.value,
+        localSiderealTimeHours(model.civilTimeMsProperty.value, model.longitudeProperty.value),
+      );
+      expect(azimuthWrites[0]).toBeCloseTo(azDeg, 6);
+    }
+  });
+
+  it("derives LST and solar altitude from the same sky snapshot", () => {
+    model.advanceCivilTimeHours(5);
+    const snapshot = model.skySnapshotProperty.value;
+    expect(model.localSiderealTimeHoursProperty.value).toBe(snapshot.localSiderealTimeHours);
+    const sun = snapshot.byId.get("sun");
+    expect(sun).toBeDefined();
+    if (sun) {
+      const { altDeg } = equatorialToHorizontal(
+        sun.raHours,
+        sun.decDeg,
+        model.latitudeProperty.value,
+        model.localSiderealTimeHoursProperty.value,
+      );
+      expect(model.solarAltitudeDegProperty.value).toBeCloseTo(altDeg, 10);
+    }
+  });
+
   it("a manual pan cancels tracking", () => {
     model.showHorizonProperty.value = false;
     model.selectedObjectProperty.value = { kind: "star", id: "vega", raHours: 18.6153, decDeg: 38.7837, mag: 0.03 };

@@ -176,7 +176,16 @@ export class PlanetariumSkyNode extends Node {
   private skyDirty = false;
 
   /**
-   * Teardown functions for the 34 lazyLinks wired in the constructor. Held so
+   * Set when something that moves the fixed alt/az frame changes — look
+   * direction, field of view, view bounds, or a frame-layer toggle. The alt/az
+   * grid, meridian, cardinal labels, and horizon/ground shapes are anchored to
+   * the observer, not the stars, so while time plays they are rebuilt only when
+   * this is set rather than on every frame. Starts true for the first redraw.
+   */
+  private frameDirty = true;
+
+  /**
+   * Teardown functions for the lazyLinks wired in the constructor. Held so
    * {@link dispose} can detach them; otherwise the linked model Properties would
    * keep firing `skyDirty = true` into a node that's no longer in the scene.
    */
@@ -358,6 +367,16 @@ export class PlanetariumSkyNode extends Node {
       northwest: cardinalText(cardinals.northwestStringProperty),
       zenith: cardinalText(cardinals.zenithStringProperty),
     };
+    // Cardinals are centered on their horizon point; a locale switch resizes the
+    // text, so re-place them even though the alt/az frame itself hasn't moved.
+    for (const label of Object.values(this.cardinalLabels)) {
+      const onCardinalResize = (): void => {
+        this.frameDirty = true;
+        this.skyDirty = true;
+      };
+      label.localBoundsProperty.lazyLink(onCardinalResize);
+      this.disposers.push(() => label.localBoundsProperty.unlink(onCardinalResize));
+    }
 
     this.selectionRing = new Circle(10, {
       stroke: ZenithColors.selectionColorProperty,
@@ -444,9 +463,23 @@ export class PlanetariumSkyNode extends Node {
     // in turn (e.g. advancing time sets civil time, then local sidereal time,
     // then re-derives solar altitude), which would otherwise force a full redraw
     // — grids, constellations, and every catalog star — several times per frame.
+    // The subset that also moves the alt/az frame layers (see frameDirty).
+    const frameDependencies: ReadonlySet<unknown> = new Set([
+      model.lookAzimuthDegProperty,
+      model.lookAltitudeDegProperty,
+      model.fieldOfViewDegProperty,
+      model.showGridProperty,
+      model.showCardinalsProperty,
+      model.showMeridianProperty,
+      model.showHorizonProperty,
+    ]);
     for (const property of redrawDependencies) {
+      const movesFrame = frameDependencies.has(property);
       const listener = (): void => {
         this.skyDirty = true;
+        if (movesFrame) {
+          this.frameDirty = true;
+        }
       };
       property.lazyLink(listener);
       this.disposers.push(() => property.unlink(listener));
@@ -470,7 +503,7 @@ export class PlanetariumSkyNode extends Node {
   }
 
   /**
-   * Detaches the 34 redraw-dependency lazyLinks, then tears down the child
+   * Detaches the redraw-dependency and cardinal-resize lazyLinks, then tears down the child
    * subtree. `Node.dispose()` only *detaches* children (removeAllChildren) — it
    * does not dispose them — so the label Text nodes (cardinals, star/planet
    * names) and `celestialLinesNode`'s derived measure Properties would otherwise
@@ -498,6 +531,7 @@ export class PlanetariumSkyNode extends Node {
     this.clipArea = Shape.bounds(bounds);
     // Redraw immediately (layout changes are rare) and drop any pending dirty flag.
     this.skyDirty = false;
+    this.frameDirty = true;
     this.redraw();
   }
 
@@ -1165,13 +1199,17 @@ export class PlanetariumSkyNode extends Node {
     this.skyFill.fill = gradient;
     this.skyFill.setRect(b.minX, b.minY, b.width, b.height);
 
-    const showHorizon = this.model.showHorizonProperty.value;
-    if (showHorizon) {
+    // The ground tint follows the Sun every redraw; its outline is frame-anchored.
+    this.groundFill.fill = colors.ground;
+  }
+
+  /** Rebuilds the horizon line and ground outline, which depend only on the alt/az frame. */
+  private redrawHorizonShapes(): void {
+    if (this.model.showHorizonProperty.value) {
       const { horizon, ground } = horizonAndGroundShapes(
         (altDeg, azDeg) => this.projection.project(altDeg, azDeg),
         this.bounds2,
       );
-      this.groundFill.fill = colors.ground;
       this.groundFill.shape = ground;
       this.groundFill.visible = ground !== null;
       this.horizonLine.shape = horizon;
@@ -1182,9 +1220,35 @@ export class PlanetariumSkyNode extends Node {
     }
   }
 
+  /**
+   * Rebuilds the observer-anchored layers — alt/az grid and its labels, meridian,
+   * cardinal labels, horizon/ground outline. None depends on time, so these skip
+   * the per-frame redraw while the clock plays (see {@link frameDirty}).
+   */
+  private redrawFrameLayers(): void {
+    this.redrawHorizonShapes();
+
+    this.gridPath.visible = this.model.showGridProperty.value;
+    if (this.gridPath.visible) {
+      this.gridPath.shape = this.altAzGridShape();
+    }
+    this.redrawHorizontalGridLabels();
+
+    this.meridianPath.visible = this.model.showMeridianProperty.value;
+    if (this.meridianPath.visible) {
+      this.meridianPath.shape = this.meridianShape();
+    }
+
+    this.redrawCardinals();
+  }
+
   private redraw(): void {
     this.projection = this.buildProjection();
     this.redrawTwilightSky();
+    if (this.frameDirty) {
+      this.frameDirty = false;
+      this.redrawFrameLayers();
+    }
 
     const starVisibility = effectiveStarVisibility(
       this.model.solarAltitudeDegProperty.value,
@@ -1207,23 +1271,11 @@ export class PlanetariumSkyNode extends Node {
       this.constellationPath.shape = this.constellationShape();
     }
 
-    this.gridPath.visible = this.model.showGridProperty.value;
-    if (this.gridPath.visible) {
-      this.gridPath.shape = this.altAzGridShape();
-    }
-    this.redrawHorizontalGridLabels();
-
-    this.meridianPath.visible = this.model.showMeridianProperty.value;
-    if (this.meridianPath.visible) {
-      this.meridianPath.shape = this.meridianShape();
-    }
-
     this.starsPath.shape = starVisibility > STAR_RENDER_MIN_VISIBILITY ? this.redrawStars() : null;
     this.celestialLinesNode.redraw(this.projection);
     this.planetsNode.redraw(this.projection);
     this.redrawStarLabels();
     this.redrawConstellationLabels();
-    this.redrawCardinals();
     this.redrawSelection();
   }
 }
