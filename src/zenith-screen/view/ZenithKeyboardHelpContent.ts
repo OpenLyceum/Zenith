@@ -14,6 +14,7 @@ import {
   KeyboardHelpSection,
   KeyboardHelpSectionRow,
   LetterKeyNode,
+  MoveDraggableItemsKeyboardHelpSection,
   SliderControlsKeyboardHelpSection,
   TextKeyNode,
   TimeControlsKeyboardHelpSection,
@@ -169,7 +170,12 @@ export class ZenithKeyboardHelpContent extends TwoColumnKeyboardHelpContent {
     ]);
 
     super(
-      [movementSection, timeSection, new BasicActionsKeyboardHelpSection()],
+      [
+        movementSection,
+        new MoveDraggableItemsKeyboardHelpSection(),
+        timeSection,
+        new BasicActionsKeyboardHelpSection(),
+      ],
       [
         selectionZoomSection,
         displaySection,

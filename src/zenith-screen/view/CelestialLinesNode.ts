@@ -14,7 +14,7 @@
  */
 
 import { DerivedProperty, PatternStringProperty, type TReadOnlyProperty } from "scenerystack/axon";
-import type { Vector2 } from "scenerystack/dot";
+import { toFixed, type Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
 import { Circle, Node, Path, Text } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
@@ -94,7 +94,7 @@ export class CelestialLinesNode extends Node {
       pickable: false,
     });
     this.separationText = new DerivedProperty([model.measureSeparationDegProperty], (deg) =>
-      deg === null ? "" : deg.toFixed(1),
+      deg === null ? "" : toFixed(deg, 1),
     );
     this.measureSeparationPattern = new PatternStringProperty(
       StringManager.getInstance().getControls().measureSeparationStringProperty,

@@ -6,7 +6,7 @@
  */
 
 import { BooleanProperty, PatternStringProperty } from "scenerystack/axon";
-import type { Bounds2 } from "scenerystack/dot";
+import { type Bounds2, toFixed } from "scenerystack/dot";
 import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { GridBox, HBox, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { InfoButton, NumberControl, PhetFont, ResetAllButton } from "scenerystack/scenery-phet";
@@ -354,8 +354,8 @@ export class ZenithScreenView extends ScreenView {
             model.longitudeProperty.value = lon;
             useMyLocationButton.addAccessibleResponse(
               new PatternStringProperty(a11y.controls.useMyLocationSuccessStringProperty, {
-                lat: lat.toFixed(1),
-                lon: lon.toFixed(1),
+                lat: toFixed(lat, 1),
+                lon: toFixed(lon, 1),
               }),
             );
           })

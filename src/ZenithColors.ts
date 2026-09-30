@@ -323,6 +323,12 @@ const ZenithColors = {
     default: "#ff5a4d",
     projector: "#d5342a",
   }),
+
+  /** Stroke around the observer-location pin dot, so the marker stays visible on land and ocean. */
+  locationPinStrokeColorProperty: new ProfileColorProperty(ZenithNamespace, "locationPinStroke", {
+    default: "#ffffff",
+    projector: "#ffffff",
+  }),
 };
 
 export default ZenithColors;

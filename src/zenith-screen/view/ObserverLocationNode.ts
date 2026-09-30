@@ -23,7 +23,7 @@ import {
   Circle,
   Color,
   DragListener,
-  KeyboardListener,
+  KeyboardDragListener,
   Line,
   Node,
   type NodeOptions,
@@ -223,7 +223,11 @@ export class ObserverLocationNode extends Node {
         new Circle(12, { fill: Color.TRANSPARENT }),
         new Line(-9, 0, 9, 0, { stroke: ZenithColors.locationPinColorProperty, lineWidth: 1.5 }),
         new Line(0, -9, 0, 9, { stroke: ZenithColors.locationPinColorProperty, lineWidth: 1.5 }),
-        new Circle(3.5, { fill: ZenithColors.locationPinColorProperty, stroke: "#ffffff", lineWidth: 0.75 }),
+        new Circle(3.5, {
+          fill: ZenithColors.locationPinColorProperty,
+          stroke: ZenithColors.locationPinStrokeColorProperty,
+          lineWidth: 0.75,
+        }),
       ],
     });
 
@@ -245,29 +249,41 @@ export class ObserverLocationNode extends Node {
       ),
     );
 
-    // The DragListener clamps modelPositionProperty to the lat/long bounds itself.
+    // Both listeners clamp modelPositionProperty to the lat/long bounds. Pointer drag
+    // stays on the pin (the enlarged grab target, kept out of the tab order). Keyboard
+    // drag is on this focusable map: the sky's look-pan hotkeys live on a different
+    // node, and this replaces the previous arrow KeyboardListener so arrows are bound once.
     // `useParentOffset` derives the grab offset from the positionProperty (not the
     // node transform), so pressing the crosshair never shifts it.
-    // Pointer-only, and the pin stays out of the focus order: this Node is the focusable map and
-    // already carries the arrow-key listener below, so making the pin focusable too would add a
-    // second tab stop that binds the same arrows.
+    const dragBoundsProperty = new Property(
+      new Bounds2(LONGITUDE_RANGE.min, LATITUDE_RANGE.min, LONGITUDE_RANGE.max, LATITUDE_RANGE.max),
+    );
     const dragListener = new DragListener({
       transform: modelViewTransform,
       positionProperty: modelPositionProperty,
-      dragBoundsProperty: new Property(
-        new Bounds2(LONGITUDE_RANGE.min, LATITUDE_RANGE.min, LONGITUDE_RANGE.max, LATITUDE_RANGE.max),
-      ),
+      dragBoundsProperty,
       useParentOffset: true,
     });
     pin.addInputListener(dragListener);
 
+    // Equirectangular scale is the same on both axes (360° across `width`).
+    const pixelsPerDegree = width / 360;
+    const keyboardDragListener = new KeyboardDragListener({
+      transform: modelViewTransform,
+      positionProperty: modelPositionProperty,
+      dragBoundsProperty,
+      dragDelta: LOCATION_STEP_DEGREES * pixelsPerDegree,
+      shiftDragDelta: pixelsPerDegree,
+    });
+    this.addInputListener(keyboardDragListener);
+
     // Keep the pin and the drag's positionProperty in sync with the observer's
     // lat/long (keyboard / slider / combo / reset). The positionProperty half is
-    // skipped while dragging — the DragListener owns it then — otherwise the round
+    // skipped while dragging — the active listener owns it then — otherwise the round
     // trip trips axon's reentry guard on tiny float drift.
     Multilink.multilink([latitudeProperty, longitudeProperty], (lat, lon) => {
       pin.translation = new Vector2(lonToX(lon), latToY(lat));
-      if (!dragListener.isPressedProperty.value) {
+      if (!(dragListener.isPressedProperty.value || keyboardDragListener.isPressedProperty.value)) {
         modelPositionProperty.value = new Vector2(lon, lat);
       }
     });
@@ -277,24 +293,5 @@ export class ObserverLocationNode extends Node {
       longitudeProperty.value = modelPt.x;
       latitudeProperty.value = modelPt.y;
     });
-
-    // Arrow keys nudge the location when the map is focused.
-    this.addInputListener(
-      new KeyboardListener({
-        keys: ["arrowLeft", "arrowRight", "arrowUp", "arrowDown"],
-        fireOnHold: true,
-        fire: (_event, keysPressed) => {
-          if (keysPressed === "arrowLeft") {
-            longitudeProperty.value = LONGITUDE_RANGE.constrainValue(longitudeProperty.value - LOCATION_STEP_DEGREES);
-          } else if (keysPressed === "arrowRight") {
-            longitudeProperty.value = LONGITUDE_RANGE.constrainValue(longitudeProperty.value + LOCATION_STEP_DEGREES);
-          } else if (keysPressed === "arrowUp") {
-            latitudeProperty.value = LATITUDE_RANGE.constrainValue(latitudeProperty.value + LOCATION_STEP_DEGREES);
-          } else if (keysPressed === "arrowDown") {
-            latitudeProperty.value = LATITUDE_RANGE.constrainValue(latitudeProperty.value - LOCATION_STEP_DEGREES);
-          }
-        },
-      }),
-    );
   }
 }

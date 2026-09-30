@@ -6,14 +6,16 @@
  * every readout consistently. Pure functions with no Scenery / model deps.
  */
 
+import { toFixed } from "scenerystack/dot";
+
 /** Equatorial RA or LST in hours, two decimals (e.g. "5.24"). */
-export const formatHours = (hours: number): string => hours.toFixed(2);
+export const formatHours = (hours: number): string => toFixed(hours, 2);
 
 /** Angle in degrees, one decimal (e.g. "12.3"). */
-export const formatDeg = (deg: number): string => deg.toFixed(1);
+export const formatDeg = (deg: number): string => toFixed(deg, 1);
 
 /** Apparent visual magnitude, two decimals (e.g. "-1.50"). */
-export const formatMag = (mag: number): string => mag.toFixed(2);
+export const formatMag = (mag: number): string => toFixed(mag, 2);
 
 /**
  * Formats a positive duration in hours as "Hh Mm" (or "Mm" under an hour).
