@@ -71,6 +71,7 @@ export class ZenithScreenView extends ScreenView {
   private readonly controlPanel: AccordionBox;
   private readonly timePanel: TimeControlPanel;
   private readonly locationPanel: AccordionBox;
+  private readonly ownedSummaryContent: ZenithScreenSummaryContent;
 
   /**
    * Teardown callbacks for constructor-time links (visibleBounds, panel bounds,
@@ -79,13 +80,15 @@ export class ZenithScreenView extends ScreenView {
   private readonly disposers: (() => void)[] = [];
 
   public constructor(model: ZenithModel, providedOptions?: ZenithScreenViewOptions) {
+    const ownedSummaryContent = new ZenithScreenSummaryContent(model);
     const options = optionize<ZenithScreenViewOptions, EmptySelfOptions, ScreenViewOptions>()(
       {
-        screenSummaryContent: new ZenithScreenSummaryContent(model),
+        screenSummaryContent: ownedSummaryContent,
       },
       providedOptions,
     );
     super(options);
+    this.ownedSummaryContent = ownedSummaryContent;
 
     const stringManager = StringManager.getInstance();
     const controls = stringManager.getControls();
@@ -574,6 +577,7 @@ export class ZenithScreenView extends ScreenView {
       new Node({
         pdomOrder: [
           this.skyNode,
+          selectionPanel,
           this.searchNode,
           this.locationPanel,
           this.timePanel,
@@ -592,7 +596,7 @@ export class ZenithScreenView extends ScreenView {
   }
 
   /**
-   * Detaches constructor-time links and tears down the sky node. Does not call
+   * Detaches constructor-time links and tears down owned child nodes. Does not call
    * `super.dispose()` — joist `ScreenView` is intentionally non-disposable
    * (`isDisposable` is omitted from `ScreenViewOptions`, and its `setPDOMOrder`
    * override throws during ParallelDOM teardown). The subscription surface is
@@ -602,8 +606,15 @@ export class ZenithScreenView extends ScreenView {
     for (const dispose of this.disposers.splice(0)) {
       dispose();
     }
-    this.skyNode.dispose();
-    this.selectedReadout.dispose();
+    // ComboBox list boxes are mounted directly under ScreenView even though the
+    // ComboBox owns them. Dispose panels first, then their already-disposed popups.
+    for (const child of [...this.children].reverse()) {
+      child.disposeSubtree();
+    }
+    if (this.screenSummaryContent === this.ownedSummaryContent) {
+      this.screenSummaryContent = null;
+    }
+    this.ownedSummaryContent.disposeSubtree();
   }
 
   public override step(_dt: number): void {

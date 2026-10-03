@@ -53,6 +53,8 @@ type Entry = {
 };
 
 export class ObjectNameSearch extends Node {
+  private readonly disposers: (() => void)[] = [];
+
   public constructor(model: ZenithModel) {
     const stringManager = StringManager.getInstance();
     const controls = stringManager.getControls();
@@ -84,11 +86,13 @@ export class ObjectNameSearch extends Node {
     // Re-rank whenever the query changes. A locale swap re-reads names, so bump
     // a tick from any name property change (they all flip together on locale).
     const localeTickProperty = new Property(0);
-    for (const entry of entries) {
-      entry.nameProperty.lazyLink(() => {
+    const localeListeners = entries.map((entry) => {
+      const onNameChange = (): void => {
         localeTickProperty.value++;
-      });
-    }
+      };
+      entry.nameProperty.lazyLink(onNameChange);
+      return () => entry.nameProperty.unlink(onNameChange);
+    });
     const matchesProperty = new DerivedProperty([queryProperty, localeTickProperty], (query) => {
       const searchEntries = entries.map((entry) => ({ id: entry.selected.id, name: entry.nameProperty.value }));
       return rankObjects(query, searchEntries, MAX_RESULTS)
@@ -109,11 +113,12 @@ export class ObjectNameSearch extends Node {
     };
 
     // Keep the highlight within range as the result set shrinks.
-    matchesProperty.link((matches) => {
+    const onMatches = (matches: Entry[]): void => {
       if (highlightIndexProperty.value > matches.length - 1) {
         highlightIndexProperty.value = Math.max(0, matches.length - 1);
       }
-    });
+    };
+    matchesProperty.link(onMatches);
 
     // ── Field ──────────────────────────────────────────────────────────────────
     const fieldFont = new PhetFont(CONTROL_FONT_SIZE);
@@ -128,18 +133,22 @@ export class ObjectNameSearch extends Node {
       lineWidth: 1.5,
     });
 
-    const fieldText = new Text(
-      new DerivedProperty([queryProperty, controls.searchPlaceholderStringProperty], (q, placeholder) =>
-        q.length === 0 ? placeholder : q,
-      ),
-      { font: fieldFont, fill: LIGHT_SURFACE_TEXT_FILL, maxWidth: FIELD_WIDTH - 22 },
+    const fieldTextProperty = new DerivedProperty(
+      [queryProperty, controls.searchPlaceholderStringProperty],
+      (q, placeholder) => (q.length === 0 ? placeholder : q),
     );
+    const fieldText = new Text(fieldTextProperty, {
+      font: fieldFont,
+      fill: LIGHT_SURFACE_TEXT_FILL,
+      maxWidth: FIELD_WIDTH - 22,
+    });
     fieldText.left = 10;
     fieldText.centerY = FIELD_HEIGHT / 2;
     fieldText.opacity = 0.5;
-    queryProperty.lazyLink((q) => {
+    const onQuery = (q: string): void => {
       fieldText.opacity = q.length === 0 ? 0.5 : 1;
-    });
+    };
+    queryProperty.lazyLink(onQuery);
 
     const caret = new Rectangle(0, 0, 1.5, FIELD_HEIGHT - 12, { fill: LIGHT_SURFACE_TEXT_FILL, cornerRadius: 0.75 });
     caret.visible = false;
@@ -177,9 +186,13 @@ export class ObjectNameSearch extends Node {
     };
 
     const resultsBox = new VBox({ spacing: 1, align: "left" });
-    Multilink.multilink([matchesProperty, highlightIndexProperty], (matches, highlight) =>
-      resultsBox.setChildren(matches.map((entry, i) => createRow(entry, i === highlight))),
-    );
+    const rowsMultilink = Multilink.multilink([matchesProperty, highlightIndexProperty], (matches, highlight) => {
+      const oldRows = resultsBox.children;
+      resultsBox.setChildren(matches.map((entry, i) => createRow(entry, i === highlight)));
+      for (const row of oldRows) {
+        row.disposeSubtree();
+      }
+    });
 
     // ── "No matches" line + list visibility ────────────────────────────────────
     // Also on the dark panel fill, not the white field — panel text color.
@@ -188,15 +201,19 @@ export class ObjectNameSearch extends Node {
       fill: ZenithColors.textColorProperty,
       maxWidth: FIELD_WIDTH,
     });
-    Multilink.multilink([focusedProperty, queryProperty, matchesProperty], (isFocused, q, matches) => {
-      resultsBox.visible = isFocused || q.length > 0;
-      statusText.visible = isFocused && q.length > 0 && matches.length === 0;
-    });
+    const statusMultilink = Multilink.multilink(
+      [focusedProperty, queryProperty, matchesProperty],
+      (isFocused, q, matches) => {
+        resultsBox.visible = isFocused || q.length > 0;
+        statusText.visible = isFocused && q.length > 0 && matches.length === 0;
+      },
+    );
 
     // Caret follows focus.
-    focusedProperty.lazyLink((isFocused) => {
+    const onFocus = (isFocused: boolean): void => {
       caret.visible = isFocused;
-    });
+    };
+    focusedProperty.lazyLink(onFocus);
 
     const panel = new ZenithPanel(
       new VBox({ spacing: PANEL_CONTENT_SPACING, align: "left", children: [fieldNode, resultsBox, statusText] }),
@@ -258,5 +275,37 @@ export class ObjectNameSearch extends Node {
         },
       }),
     );
+
+    this.disposers.push(() => {
+      for (const unlink of localeListeners) {
+        unlink();
+      }
+      matchesProperty.unlink(onMatches);
+      queryProperty.unlink(onQuery);
+      focusedProperty.unlink(onFocus);
+      fieldText.boundsProperty.unlink(positionCaret);
+      rowsMultilink.dispose();
+      statusMultilink.dispose();
+    });
+    this.disposers.push(() => {
+      fieldTextProperty.dispose();
+      fieldStrokeProperty.dispose();
+      matchesProperty.dispose();
+      queryProperty.dispose();
+      focusedProperty.dispose();
+      highlightIndexProperty.dispose();
+      localeTickProperty.dispose();
+    });
+  }
+
+  public override dispose(): void {
+    const [detachListeners, disposeProperties] = this.disposers.splice(0);
+    detachListeners?.();
+    const children = this.children;
+    super.dispose();
+    for (const child of children) {
+      child.disposeSubtree();
+    }
+    disposeProperties?.();
   }
 }

@@ -6,6 +6,7 @@
 
 import { Bounds2, Vector2 } from "scenerystack/dot";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { rotateEquatorial } from "../src/common/sky/Precession.js";
 import { equatorialToHorizontal, horizontalToEquatorial } from "../src/common/sky/SkyCoordinates.js";
 import { ZenithPreferencesModel } from "../src/preferences/ZenithPreferencesModel.js";
 import { SELECTION_HIT_RADIUS_PX } from "../src/ZenithConstants.js";
@@ -69,6 +70,7 @@ describe("PlanetariumSkyNode", () => {
       const point = projectObject(model, object);
       expect(point).not.toBeNull();
       if (point) {
+        expect(VIEW_BOUNDS.containsPoint(point)).toBe(true);
         points.push(point);
       }
     }
@@ -137,8 +139,8 @@ describe("PlanetariumSkyNode", () => {
     }
 
     const snapped = skyNode.equatorialAtViewPoint(starPoint);
-    expect(snapped.raHours).toBeCloseTo(eq.raHours, 6);
-    expect(snapped.decDeg).toBeCloseTo(eq.decDeg, 6);
+    expect(snapped.raHours).toBeCloseTo(star.raHours, 6);
+    expect(snapped.decDeg).toBeCloseTo(star.decDeg, 6);
 
     const empty = new Vector2(VIEW_BOUNDS.minX + 5, VIEW_BOUNDS.minY + 5);
     expect(skyNode.findNearestObject(empty)).toBeNull();
@@ -150,14 +152,22 @@ describe("PlanetariumSkyNode", () => {
       model.latitudeProperty.value,
       model.localSiderealTimeHoursProperty.value,
     );
-    expect(skyEq.raHours).toBeCloseTo(expected.raHours, 6);
-    expect(skyEq.decDeg).toBeCloseTo(expected.decDeg, 6);
+    const expectedJ2000 = rotateEquatorial(expected.raHours, expected.decDeg, model.precessionMatrix, true);
+    expect(skyEq.raHours).toBeCloseTo(expectedJ2000.raHours, 6);
+    expect(skyEq.decDeg).toBeCloseTo(expectedJ2000.decDeg, 6);
   });
 
   it("findNearestObject sees post-pan geometry after updateDirty (Low #7)", () => {
     const beforeObjects = skyNode.listSelectableObjectsInView().filter((o) => o.kind === "star");
     expect(beforeObjects.length).toBeGreaterThan(0);
-    const star = beforeObjects[0];
+    const star = beforeObjects.reduce<SelectedSkyObject | undefined>((closest, candidate) => {
+      const candidatePoint = projectObject(model, candidate);
+      const closestPoint = closest && projectObject(model, closest);
+      return candidatePoint &&
+        (!closestPoint || candidatePoint.distance(VIEW_BOUNDS.center) < closestPoint.distance(VIEW_BOUNDS.center))
+        ? candidate
+        : closest;
+    }, undefined);
     expect(star).toBeDefined();
     if (!star) {
       return;
@@ -170,8 +180,8 @@ describe("PlanetariumSkyNode", () => {
     }
     expect(skyNode.findNearestObject(pointBefore)?.id).toBe(star.id);
 
-    // Pan ~90° so the old screen position no longer maps to that star.
-    model.lookAzimuthDegProperty.value = (model.lookAzimuthDegProperty.value + 90) % 360;
+    // Pan enough to move a central star while keeping it inside the viewport.
+    model.lookAzimuthDegProperty.value = (model.lookAzimuthDegProperty.value + 10) % 360;
     skyNode.updateDirty();
 
     const pointAfter = projectObject(model, star);

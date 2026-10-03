@@ -7,6 +7,9 @@
  */
 
 import { toFixed } from "scenerystack/dot";
+import { StringUtils } from "scenerystack/phetcommon";
+
+const MINUTES_PER_HOUR = 60;
 
 /** Equatorial RA or LST in hours, two decimals (e.g. "5.24"). */
 export const formatHours = (hours: number): string => toFixed(hours, 2);
@@ -18,12 +21,13 @@ export const formatDeg = (deg: number): string => toFixed(deg, 1);
 export const formatMag = (mag: number): string => toFixed(mag, 2);
 
 /**
- * Formats a positive duration in hours as "Hh Mm" (or "Mm" under an hour).
+ * Formats a positive duration in hours using localized unit patterns.
  * Negative inputs are clamped to zero — used for rise/set/transit wait times.
  */
-export const formatDuration = (hours: number): string => {
-  const totalMin = Math.max(0, Math.round(hours * 60));
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+export const formatDuration = (hours: number, hourPattern: string, minutePattern: string): string => {
+  const totalMin = Math.max(0, Math.round(hours * MINUTES_PER_HOUR));
+  const h = Math.floor(totalMin / MINUTES_PER_HOUR);
+  const m = totalMin % MINUTES_PER_HOUR;
+  const minutes = StringUtils.fillIn(minutePattern, { value: m });
+  return h > 0 ? `${StringUtils.fillIn(hourPattern, { value: h })} ${minutes}` : minutes;
 };

@@ -161,6 +161,8 @@ const buildLandShape = (
 };
 
 export class ObserverLocationNode extends Node {
+  private readonly disposers: (() => void)[] = [];
+
   public constructor(
     latitudeProperty: NumberProperty,
     longitudeProperty: NumberProperty,
@@ -281,7 +283,7 @@ export class ObserverLocationNode extends Node {
     // lat/long (keyboard / slider / combo / reset). The positionProperty half is
     // skipped while dragging — the active listener owns it then — otherwise the round
     // trip trips axon's reentry guard on tiny float drift.
-    Multilink.multilink([latitudeProperty, longitudeProperty], (lat, lon) => {
+    const locationMultilink = Multilink.multilink([latitudeProperty, longitudeProperty], (lat, lon) => {
       pin.translation = new Vector2(lonToX(lon), latToY(lat));
       if (!(dragListener.isPressedProperty.value || keyboardDragListener.isPressedProperty.value)) {
         modelPositionProperty.value = new Vector2(lon, lat);
@@ -289,9 +291,30 @@ export class ObserverLocationNode extends Node {
     });
 
     // A drag writes the (bounds-clamped) position back into the observer's lat/long.
-    modelPositionProperty.lazyLink((modelPt) => {
+    const onModelPosition = (modelPt: Vector2): void => {
       longitudeProperty.value = modelPt.x;
       latitudeProperty.value = modelPt.y;
+    };
+    modelPositionProperty.lazyLink(onModelPosition);
+
+    this.disposers.push(() => {
+      locationMultilink.dispose();
+      modelPositionProperty.unlink(onModelPosition);
     });
+    this.disposers.push(() => {
+      modelPositionProperty.dispose();
+      dragBoundsProperty.dispose();
+    });
+  }
+
+  public override dispose(): void {
+    const [detachListeners, disposeProperties] = this.disposers.splice(0);
+    detachListeners?.();
+    const children = this.children;
+    super.dispose();
+    for (const child of children) {
+      child.disposeSubtree();
+    }
+    disposeProperties?.();
   }
 }

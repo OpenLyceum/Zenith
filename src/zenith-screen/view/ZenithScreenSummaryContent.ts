@@ -10,6 +10,8 @@ import { StringManager } from "../../i18n/StringManager.js";
 import type { ZenithModel } from "../model/ZenithModel.js";
 
 export class ZenithScreenSummaryContent extends ScreenSummaryContent {
+  private readonly disposeProperties: () => void;
+
   public constructor(model: ZenithModel) {
     const a11y = StringManager.getInstance().getA11yStrings();
 
@@ -36,5 +38,22 @@ export class ZenithScreenSummaryContent extends ScreenSummaryContent {
       currentDetailsContent: currentDetails,
       interactionHintContent: a11y.screenSummary.interactionHintStringProperty,
     });
+
+    this.disposeProperties = () => {
+      currentDetails.dispose();
+      playStateProperty.dispose();
+    };
+  }
+
+  public override dispose(): void {
+    if (this.isDisposed) {
+      return;
+    }
+    const children = this.children;
+    super.dispose();
+    for (const child of children) {
+      child.disposeSubtree();
+    }
+    this.disposeProperties();
   }
 }

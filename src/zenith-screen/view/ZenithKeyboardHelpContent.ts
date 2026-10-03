@@ -10,6 +10,7 @@
 import {
   ArrowKeyNode,
   BasicActionsKeyboardHelpSection,
+  ComboBoxKeyboardHelpSection,
   KeyboardHelpIconFactory,
   KeyboardHelpSection,
   KeyboardHelpSectionRow,
@@ -180,6 +181,7 @@ export class ZenithKeyboardHelpContent extends TwoColumnKeyboardHelpContent {
         selectionZoomSection,
         displaySection,
         new SliderControlsKeyboardHelpSection(),
+        new ComboBoxKeyboardHelpSection(),
         new TimeControlsKeyboardHelpSection(),
       ],
     );
