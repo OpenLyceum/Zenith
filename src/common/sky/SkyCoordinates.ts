@@ -21,6 +21,7 @@
  */
 
 import { Vector3 } from "scenerystack/dot";
+import type { PrecessionMatrix } from "./Precession.js";
 
 export type EquatorialCoordinates = { raHours: number; decDeg: number };
 export type HorizontalCoordinates = { altDeg: number; azDeg: number };
@@ -79,7 +80,15 @@ export const equatorialToHorizontal = (
   decDeg: number,
   latitudeDeg: number,
   lstHours: number,
+  precession?: PrecessionMatrix,
 ): HorizontalCoordinates => {
+  if (precession) {
+    const vector = equatorialToHorizonVector(raHours, decDeg, latitudeDeg, lstHours, precession);
+    return {
+      altDeg: radToDeg(Math.atan2(vector.z, Math.hypot(vector.x, vector.y))),
+      azDeg: normalizeDegrees(radToDeg(Math.atan2(vector.y, vector.x))),
+    };
+  }
   const dec = degToRad(decDeg);
   const lat = degToRad(latitudeDeg);
   const ha = hoursToRadians(hourAngle(raHours, lstHours));
@@ -104,7 +113,27 @@ export const equatorialToHorizonVector = (
   decDeg: number,
   latitudeDeg: number,
   lstHours: number,
+  precession?: PrecessionMatrix,
 ): Vector3 => {
+  if (precession) {
+    const ra = hoursToRadians(raHours);
+    const dec = degToRad(decDeg);
+    const cosDec = Math.cos(dec);
+    const x = cosDec * Math.cos(ra);
+    const y = cosDec * Math.sin(ra);
+    const z = Math.sin(dec);
+    const px = precession[0] * x + precession[1] * y + precession[2] * z;
+    const py = precession[3] * x + precession[4] * y + precession[5] * z;
+    const pz = precession[6] * x + precession[7] * y + precession[8] * z;
+    const lat = degToRad(latitudeDeg);
+    const sidereal = hoursToRadians(lstHours);
+    const meridian = px * Math.cos(sidereal) + py * Math.sin(sidereal);
+    return new Vector3(
+      pz * Math.cos(lat) - meridian * Math.sin(lat),
+      -px * Math.sin(sidereal) + py * Math.cos(sidereal),
+      pz * Math.sin(lat) + meridian * Math.cos(lat),
+    );
+  }
   const dec = degToRad(decDeg);
   const lat = degToRad(latitudeDeg);
   const ha = hoursToRadians(hourAngle(raHours, lstHours));

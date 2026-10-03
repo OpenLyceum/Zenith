@@ -17,7 +17,7 @@ Vite 8, TypeScript 7, and Biome 2.
 - Bright-star catalog (~4100 stars, mag ≤ 5.8) with magnitude limit and name labels
 - Full IAU constellation stick figures and names (all 88)
 - Cardinals, zenith, meridian, and optional equatorial RA/Dec grid overlays
-- Sun, Moon, and Mercury–Neptune via `astronomy-engine` ephemerides (angularly correct Sun/Moon discs; optional true-scale planets)
+- Sun, Moon, and Mercury–Neptune via `astronomy-engine` ephemerides (Sun/Moon discs have a minimum visible size and become true-scale when zoomed in; optional exaggerated angular-size planets)
 - Observer latitude/longitude, civil UTC time, and derived local sidereal time with play / pause / speed
 - English, Spanish, and French localization via `StringManager`
 - Deep-link startup via query params (`lat`, `lon`, `date` — 1900–2100, `fov`, `magLimit`)

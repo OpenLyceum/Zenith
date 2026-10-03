@@ -90,6 +90,12 @@ export const HOURS_PER_SIDEREAL_DAY = 24;
  */
 export const SIDEREAL_HOURS_PER_SOLAR_HOUR = 1.00273790935;
 
+/** Stop refining a moving body's event when successive estimates differ by under 30 s. */
+export const BODY_EVENT_TOLERANCE_MS = 30000;
+
+/** Maximum ephemeris refinements per rise, set, or transit prediction. */
+export const BODY_EVENT_MAX_ITERATIONS = 6;
+
 /**
  * Default civil epoch: 2024-06-21 18:00 UTC (≈ noon MDT, summer solstice).
  * Documented for ephemeris tests and Reset All.
@@ -225,8 +231,9 @@ export const DEFAULT_SHOW_ATMOSPHERE = false;
 export const DEFAULT_SHOW_PLANETS = true;
 
 /**
- * Default: planets use exaggerated (magnitude-based) discs. Sun and Moon are
- * always angularly correct; enabling true scale applies that to planets too.
+ * Default: planets use exaggerated (magnitude-based) discs. Sun and Moon use
+ * their angular diameter above visibility floors; planet true-scale mode uses
+ * an exaggerated angular diameter.
  */
 export const DEFAULT_TRUE_SCALE_BODIES = false;
 

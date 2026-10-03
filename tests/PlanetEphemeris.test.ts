@@ -101,6 +101,20 @@ describe("angularDiameterToRadiusPx", () => {
   it("respects the minimum radius floor", () => {
     expect(angularDiameterToRadiusPx(0.001, 1, 0.75)).toBe(0.75);
   });
+
+  it("uses true Sun and Moon angular radii after zooming past their visibility floors", () => {
+    const sun = planetEquatorialState("sun", EPOCH_MS, DEFAULT_LATITUDE_DEG, DEFAULT_LONGITUDE_DEG);
+    const moon = planetEquatorialState("moon", EPOCH_MS, DEFAULT_LATITUDE_DEG, DEFAULT_LONGITUDE_DEG);
+    for (const [id, distance] of [
+      ["sun", sun.distAu],
+      ["moon", moon.distAu],
+    ] as const) {
+      const visual = solarSystemBodyVisual(id);
+      const diameter = apparentAngularDiameterDeg(visual.radiusKm, distance);
+      expect(angularDiameterToRadiusPx(diameter, 0.2, visual.minDiscRadiusPx)).toBe(visual.minDiscRadiusPx);
+      expect(angularDiameterToRadiusPx(diameter, 0.01, visual.minDiscRadiusPx)).toBeCloseTo(diameter / 0.02, 8);
+    }
+  });
 });
 
 describe("moonPhaseState", () => {

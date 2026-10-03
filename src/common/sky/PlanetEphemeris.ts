@@ -4,18 +4,9 @@
  * Thin wrapper around astronomy-engine for geocentric equatorial positions of
  * the Sun, Moon, and major planets. Pure functions — no Scenery / model deps.
  *
- * Positions are returned in J2000 equatorial coordinates so they share a frame
- * with the bright-star catalog; use SkyCoordinates.equatorialToHorizontal with
- * local sidereal time derived from {@link localSiderealTimeHours}.
- *
- * Frame caveat: positions are J2000 (EQJ) while {@link localSiderealTimeHours}
- * uses Greenwich *apparent* (of-date) sidereal time, so the hour angle LST − RA
- * carries the accumulated precession/nutation offset in RA. This is internally
- * consistent — stars and planets share the convention and stay aligned with each
- * other — and negligible near epoch 2000, but absolute alt/az (and rise/set
- * azimuths) drift for epochs many decades from J2000. Acceptable for an
- * educational planetarium sharing one fixed catalog frame; switch to of-date
- * (EQD) positions here if far-epoch absolute accuracy is ever required.
+ * astronomy-engine gives J2000 directions. We precess them to the mean equator
+ * of date, matching the mean sidereal clock used for horizontal projection.
+ * Its apparent (nutated) EQD output is intentionally not used with mean LST.
  */
 
 import {
@@ -29,8 +20,8 @@ import {
   MoonPhase,
   Observer,
   RAD2DEG,
-  SiderealTime,
 } from "astronomy-engine";
+import { precessionMatrixAt, rotateEquatorial } from "./Precession.js";
 import { normalizeHours } from "./SkyCoordinates.js";
 
 /** Solar-system bodies shown in the Zenith planetarium (v1). */
@@ -59,6 +50,15 @@ const BODY_MAP: Record<PlanetBodyId, Body> = {
   uranus: Body.Uranus,
   neptune: Body.Neptune,
 };
+
+const J2000_UNIX_MS = Date.UTC(2000, 0, 1, 12);
+const MS_PER_DAY = 86400000;
+const DAYS_PER_JULIAN_CENTURY = 36525;
+// IAU 1982 / Meeus GMST polynomial, degrees from J2000.0 UT1.
+const GMST_J2000_DEG = 280.46061837;
+const GMST_DEG_PER_DAY = 360.98564736629;
+const GMST_QUADRATIC_DEG = 0.000387933;
+const GMST_CUBIC_DIVISOR = 38710000;
 
 export type PlanetEquatorialState = {
   raHours: number;
@@ -90,16 +90,40 @@ export type MoonPhaseState = {
 };
 
 /**
- * Greenwich apparent sidereal time (hours) + longitude → local sidereal time.
+ * Greenwich mean sidereal time (hours) + longitude → local sidereal time.
  * Longitude is degrees east-positive (matches ZenithModel).
+ * UT1 is approximated by UTC; its sub-second offset is negligible here.
  */
 export const localSiderealTimeHours = (civilTimeMs: number, longitudeDeg: number): number => {
-  const gastHours = SiderealTime(MakeTime(new Date(civilTimeMs)));
-  return normalizeHours(gastHours + longitudeDeg / 15);
+  const daysSinceJ2000 = (civilTimeMs - J2000_UNIX_MS) / MS_PER_DAY;
+  const centuries = daysSinceJ2000 / DAYS_PER_JULIAN_CENTURY;
+  const gmstDeg =
+    GMST_J2000_DEG +
+    GMST_DEG_PER_DAY * daysSinceJ2000 +
+    GMST_QUADRATIC_DEG * centuries * centuries -
+    (centuries * centuries * centuries) / GMST_CUBIC_DIVISOR;
+  return normalizeHours(gmstDeg / 15 + longitudeDeg / 15);
+};
+
+/** Topocentric direction in the mean equator of date, without display metadata. */
+export const bodyEquatorialOfDate = (
+  bodyId: PlanetBodyId,
+  civilTimeMs: number,
+  latitudeDeg: number,
+  longitudeDeg: number,
+): { raHours: number; decDeg: number; distAu: number } => {
+  const eq = Equator(
+    BODY_MAP[bodyId],
+    MakeTime(new Date(civilTimeMs)),
+    new Observer(latitudeDeg, longitudeDeg, 0),
+    false,
+    true,
+  );
+  return { ...rotateEquatorial(eq.ra, eq.dec, precessionMatrixAt(civilTimeMs)), distAu: eq.dist };
 };
 
 /**
- * Equatorial J2000 position of a body for an Earth observer at the given civil time.
+ * Mean equatorial position of date of a body for an Earth observer.
  */
 export const planetEquatorialState = (
   bodyId: PlanetBodyId,
@@ -111,8 +135,9 @@ export const planetEquatorialState = (
   const observer = new Observer(latitudeDeg, longitudeDeg, 0);
   const body = BODY_MAP[bodyId];
 
-  // ofdate=false → J2000 (EQJ), matching the bright-star catalog frame.
+  // ofdate=false → J2000 (EQJ); precess once to the mean equator of date.
   const eq = Equator(body, time, observer, false, true);
+  const ofDate = rotateEquatorial(eq.ra, eq.dec, precessionMatrixAt(civilTimeMs));
 
   let mag: number;
   let phaseFraction: number;
@@ -129,8 +154,8 @@ export const planetEquatorialState = (
   const litOnRight = bodyId === "sun" ? true : Elongation(body, time).visibility === "evening";
 
   return {
-    raHours: eq.ra,
-    decDeg: eq.dec,
+    raHours: ofDate.raHours,
+    decDeg: ofDate.decDeg,
     mag,
     distAu: eq.dist,
     phaseFraction,
