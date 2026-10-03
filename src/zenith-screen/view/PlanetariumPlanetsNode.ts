@@ -5,7 +5,8 @@
  * the same alt/az → screen projection as stars. Ephemeris from PlanetEphemeris;
  * colors/sizes from SolarSystemBodies + ZenithColors.
  *
- * Sun and Moon discs are always sized from apparent angular diameter vs FOV.
+ * Sun and Moon discs follow apparent angular diameter vs FOV above their
+ * minimum visible pixel radii.
  * Planets use exaggerated magnitude-based radii unless true-scale is on.
  * The Moon disc includes an unlit terminator overlay from Illumination / MoonPhase.
  */
@@ -114,7 +115,7 @@ export class PlanetariumPlanetsNode extends Node {
 
   /**
    * Screen radius (px) for a body at the current true-scale setting. Sun and
-   * Moon are always angular; planets are angular only when true-scale is
+   * Moon follow angular size above their visibility floors; planets are angular only when true-scale is
    * enabled. The stereographic scale varies with altitude, so angular sizing
    * uses the local degrees-per-pixel at the body's altitude.
    */
@@ -131,7 +132,7 @@ export class PlanetariumPlanetsNode extends Node {
     if (useAngular) {
       const diameterDeg = apparentAngularDiameterDeg(visual.radiusKm, distAu);
       // Exaggerate only the planets so their distance-driven size change (and
-      // phase) reads without extreme zoom; the Sun and Moon stay true angular.
+      // phase) reads without extreme zoom; the Sun and Moon keep only a visibility floor.
       const exaggeration = isSunOrMoon ? 1 : PLANET_TRUE_SCALE_EXAGGERATION;
       const radius = angularDiameterToRadiusPx(
         diameterDeg * exaggeration,
@@ -194,7 +195,7 @@ export class PlanetariumPlanetsNode extends Node {
 
       if (phaseShadow) {
         if (visual.id === "moon") {
-          // The Moon is always drawn at true angular size, so its phase always shows.
+          // The Moon's phase shows even when its disc is enlarged to the visibility floor.
           phaseShadow.shape = discUnlitShape(radius, phase.phaseFraction, phase.waxing);
           phaseShadow.visible = phase.phaseFraction < 1 - 1e-4;
         } else {

@@ -2,7 +2,7 @@
  * ZenithModel.ts
  *
  * Top-level model for the planetarium screen. Civil time drives ephemerides and
- * local sidereal time (via astronomy-engine GAST + longitude). Look direction
+ * local mean sidereal time (GMST + longitude). Look direction
  * (azimuth + altitude) and field of view form an aim-able first-person camera;
  * the view only observes these Properties.
  */
@@ -24,6 +24,7 @@ import {
   type PlanetBodyId,
   type PlanetEquatorialState,
 } from "../../common/sky/PlanetEphemeris.js";
+import { type PrecessionMatrix, precessionMatrixAt, rotateEquatorial } from "../../common/sky/Precession.js";
 import {
   angularSeparationDeg,
   type EquatorialCoordinates,
@@ -162,8 +163,8 @@ export class ZenithModel implements TModel {
   public readonly showPlanetsProperty: BooleanProperty;
 
   /**
-   * When true, planet discs use true apparent angular size (like the Sun and
-   * Moon always do). When false, planets stay exaggerated for visibility.
+   * When true, planets use exaggerated angular-size discs. Sun and Moon use
+   * true angular size above their minimum visible pixel radii.
    */
   public readonly trueScaleBodiesProperty: BooleanProperty;
 
@@ -215,8 +216,8 @@ export class ZenithModel implements TModel {
   public readonly trackSelectedObjectProperty = new BooleanProperty(false);
 
   /**
-   * Angular-distance tool endpoints as fixed equatorial coordinates (so they
-   * track the stars as the sky rotates). Null until the learner places them.
+   * Angular-distance tool endpoints as fixed J2000 equatorial coordinates (so
+   * they track the stars as the sky rotates). Null until placed.
    */
   public readonly measureStartProperty: Property<EquatorialCoordinates | null>;
   public readonly measureEndProperty: Property<EquatorialCoordinates | null>;
@@ -543,18 +544,23 @@ export class ZenithModel implements TModel {
 
   /**
    * Resolves the current equatorial position and magnitude of a selected object.
-   * Stars carry fixed J2000 coordinates; planets are read from the ephemeris
-   * snapshot. Returns null when a selected planet is missing from the snapshot.
+   * Stars carry fixed J2000 coordinates and are precessed here; planets are
+   * already mean-of-date in the ephemeris snapshot. Returns null when missing.
    */
   public equatorialOfSelected(selected: SelectedSkyObject): (EquatorialCoordinates & { mag: number }) | null {
     if (selected.kind === "star") {
-      return { raHours: selected.raHours, decDeg: selected.decDeg, mag: selected.mag };
+      return { ...rotateEquatorial(selected.raHours, selected.decDeg, this.precessionMatrix), mag: selected.mag };
     }
     const state = this.skySnapshotProperty.value.byId.get(selected.id);
     if (!state) {
       return null;
     }
     return { raHours: state.raHours, decDeg: state.decDeg, mag: state.mag };
+  }
+
+  /** One cached J2000 → mean-of-date rotation for all catalog stars at this epoch. */
+  public get precessionMatrix(): PrecessionMatrix {
+    return precessionMatrixAt(this.civilTimeMsProperty.value);
   }
 
   public clearSelection(): void {

@@ -24,8 +24,9 @@
  *                                     alt-az grid / equatorial grid / meridian
  */
 
-import { PatternStringProperty, type TReadOnlyProperty } from "scenerystack/axon";
+import type { TReadOnlyProperty } from "scenerystack/axon";
 import { Vector2 } from "scenerystack/dot";
+import { StringUtils } from "scenerystack/phetcommon";
 import {
   DragListener,
   HotkeyData,
@@ -104,7 +105,7 @@ const announceSelection = (target: Node, model: ZenithModel, selected: SelectedS
   const { altDeg, azDeg } = equatorialToHorizontal(eq.raHours, eq.decDeg, lat, lst);
 
   target.addAccessibleResponse(
-    new PatternStringProperty(a11y.selectedAnnouncementStringProperty, {
+    StringUtils.fillIn(a11y.selectedAnnouncementStringProperty.value, {
       name,
       mag: formatMag(eq.mag),
       ra: formatHours(eq.raHours),
@@ -123,7 +124,7 @@ const announceMeasurement = (target: Node, model: ZenithModel): void => {
   const separation = model.measureSeparationDegProperty.value;
   if (start && end && separation !== null) {
     target.addAccessibleResponse(
-      new PatternStringProperty(a11y.measureResultStringProperty, { deg: formatDeg(separation) }),
+      StringUtils.fillIn(a11y.measureResultStringProperty.value, { deg: formatDeg(separation) }),
     );
   } else if (start) {
     target.addAccessibleResponse(a11y.measureFirstPointStringProperty);

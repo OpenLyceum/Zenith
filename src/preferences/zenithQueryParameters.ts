@@ -50,6 +50,9 @@ export function isValidCivilDateQueryParam(value: string | null): boolean {
   if (value === null || value === "") {
     return true;
   }
+  if (!hasExplicitUtcOffset(value)) {
+    return false;
+  }
   const ms = Date.parse(value);
   return !Number.isNaN(ms) && CIVIL_TIME_MS_RANGE.contains(ms);
 }
@@ -59,12 +62,20 @@ export function isValidCivilDateQueryParam(value: string | null): boolean {
  * or outside {@link CIVIL_TIME_MS_RANGE}.
  */
 export function parseCivilDateQueryParam(value: string | null): number | null {
-  if (value === null || value === "") {
+  if (value === null || value === "" || !hasExplicitUtcOffset(value)) {
     return null;
   }
   const ms = Date.parse(value);
   return Number.isNaN(ms) || !CIVIL_TIME_MS_RANGE.contains(ms) ? null : ms;
 }
+
+/**
+ * ISO-8601 date-only (which `Date.parse` reads as UTC midnight) or a timestamp
+ * with an explicit UTC designator or numeric offset. A bare date-time is
+ * rejected because `Date.parse` reads it as the viewer's local time.
+ */
+const hasExplicitUtcOffset = (value: string): boolean =>
+  /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:?\d{2}))?$/i.test(value);
 
 /**
  * Resolves the civil-time seed for ZenithModel from the `date` query parameter.

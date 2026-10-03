@@ -21,7 +21,7 @@ SceneryStack **first-person planetarium** for the night sky. Observer location, 
 
 ## Model
 
-`ZenithModel implements TModel`. Civil time drives ephemerides; LST is derived from GAST + longitude.
+`ZenithModel implements TModel`. Civil time drives ephemerides; LST is derived from GMST + longitude. J2000 catalog and ephemeris directions are precessed to the mean equator of date before horizontal projection.
 
 | Property | Meaning |
 |---|---|

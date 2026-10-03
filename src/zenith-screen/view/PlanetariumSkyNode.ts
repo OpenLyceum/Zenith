@@ -16,6 +16,7 @@ import { type Bounds2, clamp, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
 import { Circle, LinearGradient, Node, Path, Rectangle, Text } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
+import { type PrecessionMatrix, rotateEquatorial } from "../../common/sky/Precession.js";
 import {
   type EquatorialCoordinates,
   equatorialToHorizontal,
@@ -588,7 +589,7 @@ export class PlanetariumSkyNode extends Node {
         return;
       }
       const point = this.projectAltAz(altDeg, azDeg);
-      if (!point) {
+      if (!(point && this.bounds2.containsPoint(point))) {
         return;
       }
       ranked.push({ object, x: point.x, y: point.y });
@@ -599,7 +600,13 @@ export class PlanetariumSkyNode extends Node {
         if (star.mag > magLimit) {
           continue;
         }
-        const { altDeg, azDeg } = equatorialToHorizontal(star.raHours, star.decDeg, lat, lst);
+        const { altDeg, azDeg } = equatorialToHorizontal(
+          star.raHours,
+          star.decDeg,
+          lat,
+          lst,
+          this.model.precessionMatrix,
+        );
         pushIfVisible(
           {
             kind: "star",
@@ -635,16 +642,17 @@ export class PlanetariumSkyNode extends Node {
     if (nearest) {
       const eq = this.model.equatorialOfSelected(nearest);
       if (eq) {
-        return { raHours: eq.raHours, decDeg: eq.decDeg };
+        return rotateEquatorial(eq.raHours, eq.decDeg, this.model.precessionMatrix, true);
       }
     }
     const { altDeg, azDeg } = this.projection.unproject(viewPoint);
-    return horizontalToEquatorial(
+    const ofDate = horizontalToEquatorial(
       altDeg,
       azDeg,
       this.model.latitudeProperty.value,
       this.model.localSiderealTimeHoursProperty.value,
     );
+    return rotateEquatorial(ofDate.raHours, ofDate.decDeg, this.model.precessionMatrix, true);
   }
 
   /** Localized display name for a hovered/selected object. */
@@ -943,8 +951,12 @@ export class PlanetariumSkyNode extends Node {
         if (!(from && to)) {
           continue;
         }
-        const p0 = this.projection.projectVector(equatorialToHorizonVector(from.raHours, from.decDeg, lat, lst));
-        const p1 = this.projection.projectVector(equatorialToHorizonVector(to.raHours, to.decDeg, lat, lst));
+        const p0 = this.projection.projectVector(
+          equatorialToHorizonVector(from.raHours, from.decDeg, lat, lst, this.model.precessionMatrix),
+        );
+        const p1 = this.projection.projectVector(
+          equatorialToHorizonVector(to.raHours, to.decDeg, lat, lst, this.model.precessionMatrix),
+        );
         if (!(p0 && p1)) {
           continue;
         }
@@ -962,11 +974,12 @@ export class PlanetariumSkyNode extends Node {
     lat: number,
     lst: number,
     hideBelowHorizon: boolean,
+    precession: PrecessionMatrix,
   ): void {
     // Project straight from the horizon-frame vector: its +Z component is the
     // "up" direction, so `vec.z < 0` is the below-horizon test with no alt/az
     // (atan2/asin) round-trip — this runs over every catalog star each frame.
-    const vec = equatorialToHorizonVector(raHours, decDeg, lat, lst);
+    const vec = equatorialToHorizonVector(raHours, decDeg, lat, lst, precession);
     if (hideBelowHorizon && vec.z < 0) {
       return;
     }
@@ -985,6 +998,7 @@ export class PlanetariumSkyNode extends Node {
     const lst = this.model.localSiderealTimeHoursProperty.value;
     const magLimit = this.model.magnitudeLimitProperty.value;
     const hideBelowHorizon = this.model.showHorizonProperty.value;
+    const precession = this.model.precessionMatrix;
 
     if (this.model.deepStarCatalogProperty.value) {
       const { data, count } = getDeepStarData();
@@ -999,7 +1013,7 @@ export class PlanetariumSkyNode extends Node {
         if (ra === undefined || dec === undefined) {
           break;
         }
-        this.drawStarInto(shape, ra, dec, mag, lat, lst, hideBelowHorizon);
+        this.drawStarInto(shape, ra, dec, mag, lat, lst, hideBelowHorizon, precession);
       }
     } else {
       for (let i = 0; i < BRIGHT_STAR_COUNT; i++) {
@@ -1012,7 +1026,7 @@ export class PlanetariumSkyNode extends Node {
         if (ra === undefined || dec === undefined) {
           continue;
         }
-        this.drawStarInto(shape, ra, dec, mag, lat, lst, hideBelowHorizon);
+        this.drawStarInto(shape, ra, dec, mag, lat, lst, hideBelowHorizon, precession);
       }
     }
     return shape;
@@ -1031,7 +1045,13 @@ export class PlanetariumSkyNode extends Node {
         label.visible = false;
         continue;
       }
-      const { altDeg, azDeg } = equatorialToHorizontal(star.raHours, star.decDeg, lat, lst);
+      const { altDeg, azDeg } = equatorialToHorizontal(
+        star.raHours,
+        star.decDeg,
+        lat,
+        lst,
+        this.model.precessionMatrix,
+      );
       if (hideBelowHorizon && altDeg < 0) {
         label.visible = false;
         continue;
@@ -1152,7 +1172,13 @@ export class PlanetariumSkyNode extends Node {
         if (!star) {
           continue;
         }
-        const { altDeg, azDeg } = equatorialToHorizontal(star.raHours, star.decDeg, lat, lst);
+        const { altDeg, azDeg } = equatorialToHorizontal(
+          star.raHours,
+          star.decDeg,
+          lat,
+          lst,
+          this.model.precessionMatrix,
+        );
         if (hideBelowHorizon && altDeg < 0) {
           continue;
         }

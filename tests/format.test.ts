@@ -29,16 +29,23 @@ describe("formatMag", () => {
 });
 
 describe("formatDuration", () => {
+  const hourPattern = "{{value}}h";
+  const minutePattern = "{{value}}m";
+
   it("formats hours and minutes", () => {
-    expect(formatDuration(2.5)).toBe("2h 30m");
-    expect(formatDuration(0.75)).toBe("45m");
+    expect(formatDuration(2.5, hourPattern, minutePattern)).toBe("2h 30m");
+    expect(formatDuration(0.75, hourPattern, minutePattern)).toBe("45m");
   });
 
   it("clamps negative inputs to zero", () => {
-    expect(formatDuration(-1)).toBe("0m");
+    expect(formatDuration(-1, hourPattern, minutePattern)).toBe("0m");
   });
 
   it("rounds to the nearest minute", () => {
-    expect(formatDuration(1 / 60 + 0.001)).toBe("1m");
+    expect(formatDuration(1 / 60 + 0.001, hourPattern, minutePattern)).toBe("1m");
+  });
+
+  it("uses the supplied locale unit patterns", () => {
+    expect(formatDuration(2.5, "{{value}} h", "{{value}} min")).toBe("2 h 30 min");
   });
 });

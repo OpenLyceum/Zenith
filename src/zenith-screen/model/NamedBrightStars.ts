@@ -15,7 +15,8 @@ export type NamedBrightStar = {
 
 /**
  * Classroom staples plus constellation anchor stars.
- * Coordinates are J2000 (hours / degrees), matching BrightStarCatalog / ephemerides.
+ * Coordinates are J2000 (hours / degrees), matching BrightStarCatalog. Both are
+ * precessed to the mean equator of date for horizontal projection.
  */
 export const NAMED_BRIGHT_STARS: readonly NamedBrightStar[] = [
   { id: "polaris", raHours: 2.5303, decDeg: 89.2641, mag: 1.97 },

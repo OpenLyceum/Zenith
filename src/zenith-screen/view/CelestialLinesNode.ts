@@ -135,7 +135,7 @@ export class CelestialLinesNode extends Node {
   }
 
   /** Projects a sequence of equatorial samples to a broken polyline shape. */
-  private greatCircleShape(samples: readonly EquatorialCoordinates[], projection: SkyProjection): Shape {
+  private greatCircleShape(samples: readonly EquatorialCoordinates[], projection: SkyProjection, j2000 = false): Shape {
     const shape = new Shape();
     const lat = this.model.latitudeProperty.value;
     const lst = this.model.localSiderealTimeHoursProperty.value;
@@ -144,7 +144,13 @@ export class CelestialLinesNode extends Node {
     let started = false;
     let previous: Vector2 | null = null;
     for (const sample of samples) {
-      const { altDeg, azDeg } = equatorialToHorizontal(sample.raHours, sample.decDeg, lat, lst);
+      const { altDeg, azDeg } = equatorialToHorizontal(
+        sample.raHours,
+        sample.decDeg,
+        lat,
+        lst,
+        j2000 ? this.model.precessionMatrix : undefined,
+      );
       const point = hideBelowHorizon && altDeg < 0 ? null : projection.project(altDeg, azDeg);
       if (!point) {
         started = false;
@@ -175,7 +181,9 @@ export class CelestialLinesNode extends Node {
       : null;
 
     this.eclipticPath.visible = this.model.showEclipticProperty.value;
-    this.eclipticPath.shape = this.eclipticPath.visible ? this.greatCircleShape(ECLIPTIC_POINTS, projection) : null;
+    this.eclipticPath.shape = this.eclipticPath.visible
+      ? this.greatCircleShape(ECLIPTIC_POINTS, projection, true)
+      : null;
 
     const showObjectPath = this.model.showObjectPathProperty.value && this.model.selectedObjectProperty.value !== null;
     this.objectPath.visible = showObjectPath;
@@ -194,6 +202,7 @@ export class CelestialLinesNode extends Node {
       eq.decDeg,
       this.model.latitudeProperty.value,
       this.model.localSiderealTimeHoursProperty.value,
+      this.model.precessionMatrix,
     );
     return projection.project(altDeg, azDeg);
   }

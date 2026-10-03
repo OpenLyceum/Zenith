@@ -78,7 +78,7 @@ in TypeScript with Scenery nodes (no WASM / HiPS). Planet positions use
 | `latitudeProperty` | degrees (+N) | Observer latitude |
 | `longitudeProperty` | degrees (+E) | Observer longitude |
 | `civilTimeMsProperty` | ms (UTC epoch) | Advances while playing; drives ephemerides |
-| `localSiderealTimeHoursProperty` | hours `[0, 24)` | Derived (via `skySnapshotProperty`) from GAST + longitude |
+| `localSiderealTimeHoursProperty` | hours `[0, 24)` | Derived (via `skySnapshotProperty`) from GMST + longitude |
 | `lookAzimuthDegProperty` | degrees (N→E) | FOV center azimuth |
 | `lookAltitudeDegProperty` | degrees | FOV center altitude `[-90, 90]` (clamped to `[0, 90]` when horizon is shown) |
 | `fieldOfViewDegProperty` | degrees | Horizontal FOV |
@@ -89,7 +89,7 @@ in TypeScript with Scenery nodes (no WASM / HiPS). Planet positions use
 | `showHorizonProperty` | — | Ground band + horizon line |
 | `showAtmosphereProperty` | — | Twilight sky colors + daytime star fade |
 | `showPlanetsProperty` | — | Sun / Moon / planets |
-| `trueScaleBodiesProperty` | — | Planet discs use (exaggerated) true angular size + inner-planet phases (Sun/Moon always true scale) |
+| `trueScaleBodiesProperty` | — | Planet discs use exaggerated angular size + inner-planet phases; Sun/Moon use real angular size above minimum visible radii |
 | `showPlanetLabelsProperty` | — | Name tags (also Preferences; survives Reset All) |
 | `showStarLabelsProperty` | — | Curated bright-star name tags (Preferences) |
 | `showConstellationsProperty` | — | Stick figures (Preferences) |
@@ -127,9 +127,10 @@ in `src/ZenithConstants.ts`. Named location / epoch tables:
 ## Projection pipeline
 
 1. Catalog star, named star, constellation endpoint, or planet (RA hours, Dec
-   degrees; catalog/named/planets are J2000; constellation HIPs are Hipparcos
-   J1991.25)
-2. `equatorialToHorizontal(ra, dec, lat, lst)` → alt/az
+   degrees; catalog/named and planet ephemeris inputs are J2000; constellation
+   HIPs are Hipparcos J1991.25). Precess J2000 directions to the mean equator of
+   the display date using one cached IAU 1976 rotation matrix per epoch.
+2. `equatorialToHorizontal(ra, dec, lat, lst)` → alt/az in the mean-of-date frame
 3. Map to panel pixels via `SkyProjection` (which implements an azimuthal
    stereographic/fisheye projection). The look direction defines a camera basis
    (forward $F$, screen right, screen up). A sky point's unit vector is expressed
@@ -142,11 +143,12 @@ in `src/ZenithConstants.ts`. Named location / epoch tables:
    diverges to infinity), or below the horizon (when the horizon is shown and
    the object is below altitude 0°).
 
-LST is `normalizeHours(SiderealTime(civil) + longitudeDeg/15)` so stars and
-planets share one clock.
+LST is GMST (UTC approximates UT1) plus longitude. Mean sidereal time is paired
+with mean-of-date coordinates; apparent sidereal time would require nutation.
 
-Sun and Moon discs are always sized from apparent angular diameter vs FOV
-(degrees → pixels). When `trueScaleBodiesProperty` is off, planets use
+Sun and Moon discs use apparent angular diameter vs FOV (degrees → pixels)
+when that exceeds their minimum visible pixel radii; zooming in reveals their
+true angular size. When `trueScaleBodiesProperty` is off, planets use
 magnitude-based (brightness) disc radii. When it is on, planets are sized from
 their real angular diameter scaled by a fixed exaggeration factor — so a disc
 visibly grows and shrinks with the body's distance to Earth — and Mercury,
@@ -167,13 +169,13 @@ off keeps a night sky with stars fully visible.
 | `DeepStarCatalog.ts` | ~25,700 stars (mag ≤ 7.5), flat RA/Dec/mag arrays (J2000) |
 | `NamedBrightStars.ts` | Curated classroom stars for labels and selection |
 | `ConstellationLines.ts` | Stick-figure segments for all 88 IAU constellations (Stellarium western culture; HIP-keyed) |
-| `PlanetEphemeris.ts` | `astronomy-engine` wrapper: Sun, Moon, Mercury–Neptune (J2000 equatorial, mag, distance, per-body phase fraction + lit side, angular diameter) |
+| `PlanetEphemeris.ts` | `astronomy-engine` wrapper: Sun, Moon, Mercury–Neptune (mean equatorial of date, mag, distance, per-body phase fraction + lit side, angular diameter) |
 | `SolarSystemBodies.ts` | Display metadata (color, exaggerated disc clamps, physical radius) from `planets.ini` |
 
 Shared transform: `equatorialToHorizontal` in `src/common/sky/SkyCoordinates.ts`.
 `PlanetEphemeris.ts` is the only `astronomy-engine` import boundary; the rest of
-`src/common/sky/` is intentionally hand-rolled for per-frame throughput and J2000
-frame consistency. Keep that boundary; do not replace the hand-rolled transforms
+`src/common/sky/` is intentionally hand-rolled for per-frame throughput and
+mean-of-date frame consistency. Keep that boundary; do not replace the hand-rolled transforms
 with direct `astronomy-engine` calls.
 
 ---
@@ -199,7 +201,7 @@ Wired in `attachPlanetariumInteraction` and control-panel listeners:
 | Location ComboBox | Jump observer site |
 | Epoch ComboBox | Jump civil epoch |
 | Year / month / day / hour NumberControls | Arbitrary UTC civil jump → epoch `CUSTOM` |
-| Checkboxes (Display panel) | Alt/az grid, cardinals, meridian, RA/Dec grid, horizon, planets, atmosphere, true-scale discs, ecliptic, celestial equator, selected object path |
+| Checkboxes (Display panel) | Alt/az grid, cardinals, meridian, RA/Dec grid, horizon, planets, atmosphere, distance-scaled planet discs, ecliptic, celestial equator, selected object path |
 | SelectedObjectReadout | **Track selected object** checkbox (not in Display panel) |
 | Preferences → Simulation | Star names, constellation lines, planet names, deeper star catalog (also seedable via query params) |
 
@@ -210,8 +212,10 @@ Keyboard Shortcuts (`?`) come from `ZenithKeyboardHelpContent` / `ZenithHotkeyDa
 `SelectedObjectReadout` reacts to `selectedObjectProperty`: name, magnitude,
 RA/Dec, alt/az, IAU constellation name, object type, **solar elongation** (planets/Moon), plus
 **rise / set / transit** event times. Times are
-computed by `riseSetInfo` (`SkyCoordinates.ts`) as the next LST at which the
-object crosses altitude 0° (rise/set) or the meridian (transit), then reported
+computed by `riseSetInfo` (`SkyCoordinates.ts`) for fixed stars. For moving
+bodies, the initial estimate is refined against ephemerides at each estimated
+event time. Events cross geometric altitude 0° (rise/set) or the meridian
+(transit), then are reported
 both as a "time-from-now" duration and a local-solar clock string. Circumpolar
 and never-rises objects get a note instead (transit is still shown for
 circumpolar stars). The readout also hosts the **Track selected object**

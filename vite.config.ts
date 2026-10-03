@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import packageJson from "./package.json" with { type: "json" };
 
-const { description, name } = packageJson;
+const { description, name }: { description: string; name: string } = packageJson;
 
 /**
  * Security headers required for:
@@ -48,7 +48,7 @@ const securityHeaders: Record<string, string> = {
     "frame-ancestors 'none'",
   ].join("; "),
   "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
 };

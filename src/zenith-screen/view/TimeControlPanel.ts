@@ -55,6 +55,8 @@ const doubleTriangleShape = (dir: 1 | -1): Shape => {
 };
 
 export class TimeControlPanel extends AccordionBox {
+  private readonly disposeProperties: () => void;
+
   public constructor(model: ZenithModel, listParent: Node) {
     const stringManager = StringManager.getInstance();
     const controls = stringManager.getControls();
@@ -180,31 +182,33 @@ export class TimeControlPanel extends AccordionBox {
     const rateStringProperty = new DerivedProperty([model.timeRateProperty], (rate) =>
       rate < 0 ? `−${Math.abs(rate)}` : `${rate}`,
     );
-    const rateReadout = readoutText(
-      new PatternStringProperty(controls.timeRateStringProperty, { rate: rateStringProperty }),
-    );
+    const ratePatternProperty = new PatternStringProperty(controls.timeRateStringProperty, {
+      rate: rateStringProperty,
+    });
+    const rateReadout = readoutText(ratePatternProperty);
 
     // ── Clock readouts ────────────────────────────────────────────────────────
     const civilTimeUtcProperty = new DerivedProperty([model.civilTimeMsProperty], formatCivilTimeUtc);
-    const civilTimeReadout = readoutText(
-      new PatternStringProperty(controls.civilTimeStringProperty, { time: civilTimeUtcProperty }),
-    );
+    const civilTimePatternProperty = new PatternStringProperty(controls.civilTimeStringProperty, {
+      time: civilTimeUtcProperty,
+    });
+    const civilTimeReadout = readoutText(civilTimePatternProperty);
 
     const localSolarTimeProperty = new DerivedProperty(
       [model.civilTimeMsProperty, model.longitudeProperty],
       formatLocalSolarTime,
     );
-    const localSolarTimeReadout = readoutText(
-      new PatternStringProperty(controls.localSolarTimeStringProperty, { time: localSolarTimeProperty }),
-    );
+    const localSolarTimePatternProperty = new PatternStringProperty(controls.localSolarTimeStringProperty, {
+      time: localSolarTimeProperty,
+    });
+    const localSolarTimeReadout = readoutText(localSolarTimePatternProperty);
 
-    const lstReadout = readoutText(
-      new PatternStringProperty(
-        controls.localSiderealTimeStringProperty,
-        { hours: model.localSiderealTimeHoursProperty },
-        { decimalPlaces: { hours: 2 } },
-      ),
+    const lstPatternProperty = new PatternStringProperty(
+      controls.localSiderealTimeStringProperty,
+      { hours: model.localSiderealTimeHoursProperty },
+      { decimalPlaces: { hours: 2 } },
     );
+    const lstReadout = readoutText(lstPatternProperty);
 
     const epochRow = new HBox({
       spacing: PANEL_CONTENT_SPACING,
@@ -258,5 +262,27 @@ export class TimeControlPanel extends AccordionBox {
       accessibleHelpTextExpanded: a11y.controls.timePanelHelpExpandedStringProperty,
       accessibleHelpTextCollapsed: a11y.controls.timePanelHelpCollapsedStringProperty,
     });
+
+    this.disposeProperties = () => {
+      ratePatternProperty.dispose();
+      civilTimePatternProperty.dispose();
+      localSolarTimePatternProperty.dispose();
+      lstPatternProperty.dispose();
+      rateStringProperty.dispose();
+      civilTimeUtcProperty.dispose();
+      localSolarTimeProperty.dispose();
+    };
+  }
+
+  public override dispose(): void {
+    if (this.isDisposed) {
+      return;
+    }
+    const children = this.children;
+    super.dispose();
+    for (const child of children) {
+      child.disposeSubtree();
+    }
+    this.disposeProperties();
   }
 }

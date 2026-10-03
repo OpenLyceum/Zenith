@@ -29,6 +29,26 @@ describe("zenithQueryParameters date helpers", () => {
     expect(resolveCivilTimeMsFromQuery(iso)).toBe(Date.UTC(2024, 11, 21, 10, 0, 0));
   });
 
+  it("accepts an explicit numeric UTC offset", () => {
+    for (const timestamp of ["2024-12-21T05:00:00-05:00", "2024-12-21T05:00:00-0500"]) {
+      expect(isValidCivilDateQueryParam(timestamp)).toBe(true);
+      expect(parseCivilDateQueryParam(timestamp)).toBe(Date.UTC(2024, 11, 21, 10));
+    }
+  });
+
+  it("accepts a date-only value as UTC midnight", () => {
+    expect(isValidCivilDateQueryParam("2024-12-21")).toBe(true);
+    expect(parseCivilDateQueryParam("2024-12-21")).toBe(Date.UTC(2024, 11, 21));
+  });
+
+  it("rejects timestamps without an explicit UTC offset", () => {
+    for (const timestamp of ["2024-12-21T10:00:00", "2024-12-21T10:00", "2024-12-21T10:00:00 UTC"]) {
+      expect(isValidCivilDateQueryParam(timestamp)).toBe(false);
+      expect(parseCivilDateQueryParam(timestamp)).toBeNull();
+      expect(resolveCivilTimeMsFromQuery(timestamp)).toBe(DEFAULT_CIVIL_TIME_MS);
+    }
+  });
+
   it("rejects unparseable date strings", () => {
     expect(isValidCivilDateQueryParam("not-a-date")).toBe(false);
     expect(parseCivilDateQueryParam("not-a-date")).toBeNull();

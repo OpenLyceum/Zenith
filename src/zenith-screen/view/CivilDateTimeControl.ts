@@ -26,6 +26,8 @@ import {
 import type { ZenithModel } from "../model/ZenithModel.js";
 
 export class CivilDateTimeControl extends GridBox {
+  private readonly disposers: (() => void)[] = [];
+
   public constructor(model: ZenithModel) {
     const controls = StringManager.getInstance().getControls();
     const a11y = StringManager.getInstance().getA11yStrings();
@@ -62,18 +64,20 @@ export class CivilDateTimeControl extends GridBox {
       }
     };
 
-    yearProperty.lazyLink(() => {
+    const onYear = (): void => {
       syncDayEnabledRange();
       pushPartsToCivil();
-    });
-    monthProperty.lazyLink(() => {
+    };
+    const onMonth = (): void => {
       syncDayEnabledRange();
       pushPartsToCivil();
-    });
+    };
+    yearProperty.lazyLink(onYear);
+    monthProperty.lazyLink(onMonth);
     dayProperty.lazyLink(pushPartsToCivil);
     hourProperty.lazyLink(pushPartsToCivil);
 
-    model.civilTimeMsProperty.link((civilMs) => {
+    const onCivilTime = (civilMs: number): void => {
       if (syncingToCivil) {
         return;
       }
@@ -85,7 +89,8 @@ export class CivilDateTimeControl extends GridBox {
       hourProperty.value = parts.hour;
       dayEnabledRangeProperty.value = new Range(1, daysInUtcMonth(parts.year, parts.month));
       syncingFromCivil = false;
-    });
+    };
+    model.civilTimeMsProperty.link(onCivilTime);
 
     const titleOptions = {
       font: new PhetFont(CONTROL_FONT_SIZE),
@@ -151,5 +156,31 @@ export class CivilDateTimeControl extends GridBox {
       yAlign: "center",
       maxWidth: CONTROL_PANEL_WIDTH - 20,
     });
+
+    this.disposers.push(() => {
+      model.civilTimeMsProperty.unlink(onCivilTime);
+      yearProperty.unlink(onYear);
+      monthProperty.unlink(onMonth);
+      dayProperty.unlink(pushPartsToCivil);
+      hourProperty.unlink(pushPartsToCivil);
+    });
+    this.disposers.push(() => {
+      yearProperty.dispose();
+      monthProperty.dispose();
+      dayProperty.dispose();
+      hourProperty.dispose();
+      dayEnabledRangeProperty.dispose();
+    });
+  }
+
+  public override dispose(): void {
+    const [detachListeners, disposeProperties] = this.disposers.splice(0);
+    detachListeners?.();
+    const children = this.children;
+    super.dispose();
+    for (const child of children) {
+      child.disposeSubtree();
+    }
+    disposeProperties?.();
   }
 }

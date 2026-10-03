@@ -151,8 +151,9 @@ Sun is highest.
 - **Constellations** — stick figures for all 88 IAU constellations (western
   culture figures).
 - **Sun, Moon, planets** — positions from solar-system ephemerides. Sun and Moon
-  discs use true angular size. By default planets are drawn as brightness-scaled
-  dots (otherwise they would be nearly invisible); turning on “true-scale discs”
+  discs are enlarged to a minimum visible size in wide views and use true angular
+  size when zoomed in. By default planets are drawn as brightness-scaled
+  dots (otherwise they would be nearly invisible); turning on “distance-scaled planet discs”
   instead sizes them by their real angular diameter — exaggerated by a fixed
   factor so the disc visibly grows and shrinks with distance — and adds the
   illuminated phase of Mercury, Venus, and Mars. The Moon always shows its phase.
@@ -182,7 +183,7 @@ for daytime teaching demos (Stellarium-style).
    sky rotate.
 6. **Coordinate translation** — Select a bright star; read RA/Dec and alt/az,
    then turn on both grids so students see both frames at once.
-7. **Planet scale & phases** — Toggle true-scale discs to discuss why planets
+7. **Planet scale & phases** — Toggle distance-scaled planet discs to discuss why planets
    look like points to the naked eye, then zoom in on Venus: watch its disc grow
    and its crescent thin as it swings toward Earth (Galileo's phases of Venus).
 8. **Sidereal vs. solar day** — Select a star near transit or rising. Advance time by exactly one sidereal day ($\pm 1$ button). Note that the star returns to the exact same position in the sky, but the Sun's position and the local solar time shift.
@@ -212,7 +213,9 @@ Zenith is a teaching planetarium, not a full-sky survey tool:
 - Constellation figures are cultural stick figures, not constellation boundaries
 - Planet discs are always exaggerated for visibility — as brightness dots by
   default, or as distance-proportional discs (with inner-planet phases) in
-  true-scale mode; neither is the true naked-eye angular size
+  distance-scaled mode; neither is the true naked-eye angular size
+- Sun and Moon discs have minimum pixel radii for visibility; beyond those
+  floors their apparent size follows their real angular diameter
 - Planet phase orientation uses a simplified lit-on-the-sunward-side convention,
   not a true parallactic bright-limb angle
 - Time control is educational (sped-up civil hours), not a real-time clock by
@@ -229,19 +232,13 @@ Zenith aims for a transparent, fast model that is trustworthy near the present
 day rather than for research-grade astrometry. Where it trades precision for
 clarity:
 
-- **Stars use fixed J2000 coordinates.** Catalog positions are mean equatorial
-  RA/Dec for epoch J2000.0, applied as-is: no precession to the display date and
-  no proper motion. Near 2000–2050 the resulting drift is only about
-  arcminutes, but it grows for dates far from J2000 — precession alone moves
-  positions on the order of ~1° over ~70 years.
-- **Planets, Sun, and Moon share the star frame.** Their positions come from
-  `astronomy-engine`, requested in the J2000 (EQJ) frame so they stay internally
-  consistent with the fixed star catalog.
-- **A small frame mix in sidereal time.** Local sidereal time is Greenwich
-  *apparent* sidereal time (GAST) plus longitude, while star and planet
-  coordinates use the J2000 *mean* equinox. Combining an apparent-equinox hour
-  angle with mean-equinox coordinates introduces a sub-arcminute to arcminute
-  inconsistency — negligible for teaching.
+- **Stars start at fixed J2000 coordinates.** Catalog mean RA/Dec is precessed
+  to the mean equator of each display date with IAU 1976 precession. Individual
+  stellar proper motion is not modeled.
+- **Planets, Sun, and Moon use the same of-date mean frame.** `astronomy-engine`
+  supplies J2000 topocentric positions, which are precessed before projection.
+  Local sidereal time uses Greenwich *mean* sidereal time (GMST) plus longitude;
+  no apparent-equinox angle is mixed into the mean-coordinate hour angle.
 - **No atmospheric refraction.** Objects rise and set at true geometric altitude
   0°, about 34 arcminutes later (rising) or earlier (setting) than the real,
   refracted horizon.
@@ -250,6 +247,6 @@ clarity:
   run at the sidereal rate; a sidereal day is about 3 min 56 s shorter than a
   solar day.
 
-For research-grade positions a full ICRF→observed pipeline (precession,
-nutation, aberration, refraction — as in the bundled Stellarium Web Engine
+For research-grade positions a full ICRF→observed pipeline (nutation,
+aberration, refraction — as in the bundled Stellarium Web Engine
 reference, `src/frames.c`) would be required.

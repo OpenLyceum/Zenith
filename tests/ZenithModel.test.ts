@@ -216,6 +216,7 @@ describe("ZenithModel", () => {
       vega.decDeg,
       lat,
       model.localSiderealTimeHoursProperty.value,
+      model.precessionMatrix,
     );
     expect(model.lookAzimuthDegProperty.value).toBeCloseTo(expected0.azDeg, 6);
     expect(model.lookAltitudeDegProperty.value).toBeCloseTo(expected0.altDeg, 6);
@@ -227,6 +228,7 @@ describe("ZenithModel", () => {
       vega.decDeg,
       lat,
       model.localSiderealTimeHoursProperty.value,
+      model.precessionMatrix,
     );
     expect(model.lookAzimuthDegProperty.value).toBeCloseTo(expected1.azDeg, 6);
     expect(model.lookAltitudeDegProperty.value).toBeCloseTo(expected1.altDeg, 6);

@@ -19,8 +19,10 @@ import { PhetFont } from "scenerystack/scenery-phet";
 import { Checkbox } from "scenerystack/sun";
 import { bodyNameProperty } from "../../common/bodyName.js";
 import { formatDeg, formatDuration, formatHours, formatMag } from "../../common/format.js";
+import { nextBodyEvents } from "../../common/sky/BodyEvents.js";
 import { formatLocalSolarTime } from "../../common/sky/civilDateTime.js";
 import { bodyElongation, constellationAt } from "../../common/sky/PlanetEphemeris.js";
+import { rotateEquatorial } from "../../common/sky/Precession.js";
 import { equatorialToHorizontal, riseSetInfo, solarHoursUntilLst } from "../../common/sky/SkyCoordinates.js";
 import { ZENITH_CHECKBOX_OPTIONS } from "../../common/ZenithControlOptions.js";
 import { StringManager } from "../../i18n/StringManager.js";
@@ -132,6 +134,38 @@ const buildVisibility = (
   const clockAt = (hoursUntil: number): string =>
     formatLocalSolarTime(civilTimeMs + hoursUntil * MS_PER_HOUR, longitudeDeg);
 
+  if (selected.kind === "planet") {
+    const events = nextBodyEvents(selected.id, civilTimeMs, lat, longitudeDeg);
+    if (events.band === "neverRises") {
+      return { ...NO_VISIBILITY, kind: "neverRises" };
+    }
+    const transit = events.transit;
+    const transitInHours = transit ? (transit.timeMs - civilTimeMs) / MS_PER_HOUR : 0;
+    if (events.band === "circumpolar" || !events.rise || !events.set) {
+      return {
+        ...NO_VISIBILITY,
+        kind: "circumpolar",
+        transitInHours,
+        transitAltDeg: transit?.altitudeDeg ?? 0,
+        transitClock: clockAt(transitInHours),
+      };
+    }
+    const riseInHours = (events.rise.timeMs - civilTimeMs) / MS_PER_HOUR;
+    const setInHours = (events.set.timeMs - civilTimeMs) / MS_PER_HOUR;
+    return {
+      kind: "risesSets",
+      riseInHours,
+      riseAzDeg: events.rise.azimuthDeg,
+      riseClock: clockAt(riseInHours),
+      setInHours,
+      setAzDeg: events.set.azimuthDeg,
+      setClock: clockAt(setInHours),
+      transitInHours,
+      transitAltDeg: transit?.altitudeDeg ?? 0,
+      transitClock: clockAt(transitInHours),
+    };
+  }
+
   const info = riseSetInfo(eq.raHours, eq.decDeg, lat);
   const transitInHours = solarHoursUntilLst(lst, info.transitLstHours, SIDEREAL_HOURS_PER_SOLAR_HOUR);
   if (info.band === "neverRises") {
@@ -238,7 +272,8 @@ export class SelectedObjectReadout extends Node {
       if (s.kind === "none") {
         return controls.selectedNoneStringProperty; // hidden while unselected; harmless placeholder
       }
-      const { key, name } = constellationAt(s.raHours, s.decDeg);
+      const j2000 = rotateEquatorial(s.raHours, s.decDeg, model.precessionMatrix, true);
+      const { key, name } = constellationAt(j2000.raHours, j2000.decDeg);
       const localized = constellations[`${key}StringProperty` as keyof typeof constellations] as
         | TReadOnlyProperty<string>
         | undefined;
@@ -352,13 +387,24 @@ export class SelectedObjectReadout extends Node {
       (selected, _snapshot, lat, lst, civilMs, lon) => buildVisibility(model, selected, lat, lst, civilMs, lon),
     );
 
-    const riseTimeProperty = new DerivedProperty([visibilityProperty], (v) => formatDuration(v.riseInHours));
+    const durationDependencies = [
+      visibilityProperty,
+      controls.durationHourStringProperty,
+      controls.durationMinuteStringProperty,
+    ] as const;
+    const riseTimeProperty = new DerivedProperty(durationDependencies, (v, hour, minute) =>
+      formatDuration(v.riseInHours, hour, minute),
+    );
     const riseAzProperty = new DerivedProperty([visibilityProperty], (v) => formatDeg(v.riseAzDeg));
     const riseClockProperty = new DerivedProperty([visibilityProperty], (v) => v.riseClock);
-    const setTimeProperty = new DerivedProperty([visibilityProperty], (v) => formatDuration(v.setInHours));
+    const setTimeProperty = new DerivedProperty(durationDependencies, (v, hour, minute) =>
+      formatDuration(v.setInHours, hour, minute),
+    );
     const setAzProperty = new DerivedProperty([visibilityProperty], (v) => formatDeg(v.setAzDeg));
     const setClockProperty = new DerivedProperty([visibilityProperty], (v) => v.setClock);
-    const transitTimeProperty = new DerivedProperty([visibilityProperty], (v) => formatDuration(v.transitInHours));
+    const transitTimeProperty = new DerivedProperty(durationDependencies, (v, hour, minute) =>
+      formatDuration(v.transitInHours, hour, minute),
+    );
     const transitAltProperty = new DerivedProperty([visibilityProperty], (v) => formatDeg(v.transitAltDeg));
     const transitClockProperty = new DerivedProperty([visibilityProperty], (v) => v.transitClock);
 
