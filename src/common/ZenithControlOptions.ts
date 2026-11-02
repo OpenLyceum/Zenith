@@ -2,6 +2,9 @@
  * ZenithControlOptions.ts
  *
  * Shared sizing and layout for panel controls (sliders, checkboxes, NumberControls).
+ *
+ * Template-owned toolkit: each sim uses only some of these, so every export is tagged
+ * `@public` to tell dead-code checkers (knip) that an unused one is not dead code.
  */
 
 import { HBox, type Node } from "scenerystack/scenery";
@@ -11,7 +14,7 @@ import ZenithColors from "../ZenithColors.js";
 import { CHECKBOX_BOX_WIDTH, NUMBER_CONTROL_SLIDER_TRACK_SIZE, SLIDER_THUMB_SIZE } from "../ZenithConstants.js";
 import { FLAT_RECTANGULAR_BUTTON_OPTIONS } from "./ZenithButtonOptions.js";
 
-/** Base NumberControl options; spread into each instance and add titleNodeOptions as needed. */
+/** Base NumberControl options; spread into each instance and add titleNodeOptions as needed. @public */
 export const ZENITH_NUMBER_CONTROL_OPTIONS = {
   arrowButtonOptions: { ...FLAT_RECTANGULAR_BUTTON_OPTIONS, scale: 0.75 },
   layoutFunction: NumberControl.createLayoutFunction4({
@@ -61,7 +64,7 @@ export const ZENITH_COMPACT_SPINNER_NUMBER_CONTROL_OPTIONS = {
   },
 };
 
-/** Themed checkbox chrome for dark panel backgrounds. */
+/** Themed checkbox chrome for dark panel backgrounds. @public */
 export const ZENITH_CHECKBOX_OPTIONS = {
   boxWidth: CHECKBOX_BOX_WIDTH,
   spacing: 4,
