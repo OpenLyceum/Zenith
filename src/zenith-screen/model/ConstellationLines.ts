@@ -105,7 +105,7 @@ export type ConstellationStar = {
   readonly decDeg: number;
 };
 
-export type ConstellationSegment = {
+type ConstellationSegment = {
   readonly fromId: string;
   readonly toId: string;
 };

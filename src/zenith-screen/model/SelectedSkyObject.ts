@@ -8,7 +8,7 @@
 
 import type { PlanetBodyId } from "../../common/sky/PlanetEphemeris.js";
 
-export type SelectedNamedStar = {
+type SelectedNamedStar = {
   readonly kind: "star";
   readonly id: string;
   readonly raHours: number;
@@ -16,7 +16,7 @@ export type SelectedNamedStar = {
   readonly mag: number;
 };
 
-export type SelectedPlanet = {
+type SelectedPlanet = {
   readonly kind: "planet";
   readonly id: PlanetBodyId;
 };

@@ -177,7 +177,7 @@ export const DEFAULT_MAGNITUDE_LIMIT = 5.5;
  * Faintest visual magnitude in the deeper (Hipparcos) star catalog. Used as the
  * upper bound of {@link MAGNITUDE_LIMIT_RANGE} and to document the catalog depth.
  */
-export const DEEP_STAR_CATALOG_MAG_LIMIT = 7.5;
+const DEEP_STAR_CATALOG_MAG_LIMIT = 7.5;
 
 /**
  * Faintest magnitude reachable on the magnitude-limit slider. Matches the deep
@@ -241,7 +241,7 @@ export const DEFAULT_TRUE_SCALE_BODIES = false;
  * Floor for angularly sized discs (px) so true-scale planets remain a speck at
  * wide FOV instead of vanishing entirely.
  */
-export const MIN_ANGULAR_DISC_RADIUS_PX = 0.75;
+const MIN_ANGULAR_DISC_RADIUS_PX = 0.75;
 
 /** Default: draw name labels for preferred bodies. */
 export const DEFAULT_SHOW_PLANET_LABELS = true;
@@ -295,7 +295,6 @@ export const ALT_AZ_GRID_ALT_STEP_DEG = 15;
 export const ALT_AZ_GRID_AZ_STEP_DEG = 15;
 
 /** Alt/az grid altitude extent for parallels and tick labels (degrees). */
-export const ALT_AZ_GRID_ALT_MIN_DEG = -15;
 export const ALT_AZ_GRID_ALT_MAX_DEG = 90;
 
 /** Equatorial grid: RA step in hours. */

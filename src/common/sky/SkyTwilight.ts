@@ -18,9 +18,6 @@ import { Color } from "scenerystack/scenery";
 /** Solar altitude (°) at the start of civil twilight (Sun at horizon = 0). */
 export const CIVIL_TWILIGHT_DEG = -6;
 
-/** Solar altitude (°) at the start of nautical twilight. */
-export const NAUTICAL_TWILIGHT_DEG = -12;
-
 /** Solar altitude (°) at the start of astronomical twilight / end of night. */
 export const ASTRONOMICAL_TWILIGHT_DEG = -18;
 

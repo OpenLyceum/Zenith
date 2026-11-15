@@ -18,7 +18,7 @@ const MS_PER_HOUR = 3600000;
 const CACHE_BUCKET_MS = 60000;
 const HOURS_PER_DAY = 24;
 
-export type BodyEvent = { timeMs: number; azimuthDeg: number; altitudeDeg: number };
+type BodyEvent = { timeMs: number; azimuthDeg: number; altitudeDeg: number };
 export type BodyEvents = {
   band: DeclinationBand;
   rise: BodyEvent | null;
