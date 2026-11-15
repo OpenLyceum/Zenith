@@ -12,7 +12,14 @@
  * `objectSearch.ts` so it can be unit-tested without Scenery.
  */
 
-import { DerivedProperty, Multilink, Property, type TReadOnlyProperty } from "scenerystack/axon";
+import {
+  DerivedProperty,
+  Multilink,
+  Property,
+  stepTimer,
+  type TimerListener,
+  type TReadOnlyProperty,
+} from "scenerystack/axon";
 import { StringUtils } from "scenerystack/phetcommon";
 import type { OneKeyStroke } from "scenerystack/scenery";
 import { Color, KeyboardListener, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
@@ -85,10 +92,27 @@ export class ObjectNameSearch extends Node {
 
     // Re-rank whenever the query changes. A locale swap re-reads names, so bump
     // a tick from any name property change (they all flip together on locale).
+    // Coalesce the N name-property fires into one tick on the next animation
+    // frame — otherwise each fire rebuilds result rows while LocalizedString
+    // Properties are still notifying, and ea asserts TinyEmitter-after-dispose
+    // (and LocaleProperty reentry) under pointer fuzz of the language picker.
     const localeTickProperty = new Property(0);
+    let localeTickPending = false;
+    let localeTickTimeoutId: TimerListener | null = null;
+    const bumpLocaleTick = (): void => {
+      if (localeTickPending) {
+        return;
+      }
+      localeTickPending = true;
+      localeTickTimeoutId = stepTimer.setTimeout(() => {
+        localeTickPending = false;
+        localeTickTimeoutId = null;
+        localeTickProperty.value++;
+      }, 0);
+    };
     const localeListeners = entries.map((entry) => {
       const onNameChange = (): void => {
-        localeTickProperty.value++;
+        bumpLocaleTick();
       };
       entry.nameProperty.lazyLink(onNameChange);
       return () => entry.nameProperty.unlink(onNameChange);
@@ -279,6 +303,10 @@ export class ObjectNameSearch extends Node {
     this.disposers.push(() => {
       for (const unlink of localeListeners) {
         unlink();
+      }
+      if (localeTickTimeoutId !== null) {
+        stepTimer.clearTimeout(localeTickTimeoutId);
+        localeTickTimeoutId = null;
       }
       matchesProperty.unlink(onMatches);
       queryProperty.unlink(onQuery);
