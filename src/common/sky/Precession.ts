@@ -7,7 +7,9 @@ const MS_PER_DAY = 86400000;
 const ARCSECONDS_PER_DEGREE = 3600;
 
 /** Row-major rotation; shared by every star at one civil epoch. */
-export type PrecessionMatrix = readonly [number, number, number, number, number, number, number, number, number];
+import type { PrecessionMatrix } from "./PrecessionMatrix.js";
+
+export type { PrecessionMatrix } from "./PrecessionMatrix.js";
 
 let cachedEpochMs = Number.NaN;
 let cachedMatrix: PrecessionMatrix;

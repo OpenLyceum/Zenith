@@ -21,7 +21,7 @@
  */
 
 import { Vector3 } from "scenerystack/dot";
-import type { PrecessionMatrix } from "./Precession.js";
+import type { PrecessionMatrix } from "./PrecessionMatrix.js";
 
 export type EquatorialCoordinates = { raHours: number; decDeg: number };
 export type HorizontalCoordinates = { altDeg: number; azDeg: number };
