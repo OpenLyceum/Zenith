@@ -27,6 +27,7 @@ import { normalizeHours } from "./SkyCoordinates.js";
 /** Solar-system bodies shown in the Zenith planetarium (v1). */
 export type PlanetBodyId = "sun" | "moon" | "mercury" | "venus" | "mars" | "jupiter" | "saturn" | "uranus" | "neptune";
 
+/** @internal Exported for unit tests; not part of the application API. */
 export const PLANET_BODY_IDS: readonly PlanetBodyId[] = [
   "sun",
   "moon",
@@ -124,6 +125,7 @@ export const bodyEquatorialOfDate = (
 
 /**
  * Mean equatorial position of date of a body for an Earth observer.
+ * @internal Exported for unit tests; not part of the application API.
  */
 export const planetEquatorialState = (
   bodyId: PlanetBodyId,

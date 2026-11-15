@@ -15,12 +15,16 @@
 
 import { degToRad, type EquatorialCoordinates, normalizeHours, radiansToHours } from "./SkyCoordinates.js";
 
-/** Mean obliquity of the ecliptic at epoch J2000.0, in degrees. */
+/**
+ * Mean obliquity of the ecliptic at epoch J2000.0, in degrees.
+ * @internal Exported for unit tests; not part of the application API.
+ */
 export const OBLIQUITY_J2000_DEG = 23.4392911;
 
 /**
  * Ecliptic (λ, β) → equatorial (RA, Dec). Standard rotation about the vernal-equinox
  * axis by the obliquity ε. RA is returned in hours [0, 24), Dec in degrees.
+ * @internal Exported for unit tests; not part of the application API.
  */
 export const eclipticToEquatorial = (
   eclipticLonDeg: number,

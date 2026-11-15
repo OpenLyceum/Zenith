@@ -45,6 +45,7 @@ import ZenithNamespace from "../ZenithNamespace.js";
  *
  * Used by QueryStringMachine `isValidValue` for the `date` parameter.
  * `StringType` from QueryStringMachine includes `null`, so accept that here.
+ * @internal Exported for unit tests; not part of the application API.
  */
 export function isValidCivilDateQueryParam(value: string | null): boolean {
   if (value === null || value === "") {
@@ -60,6 +61,7 @@ export function isValidCivilDateQueryParam(value: string | null): boolean {
 /**
  * Parses a civil-date query string to UTC ms, or null when empty, unparseable,
  * or outside {@link CIVIL_TIME_MS_RANGE}.
+ * @internal Exported for unit tests; not part of the application API.
  */
 export function parseCivilDateQueryParam(value: string | null): number | null {
   if (value === null || value === "" || !hasExplicitUtcOffset(value)) {

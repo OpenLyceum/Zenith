@@ -15,7 +15,10 @@
 import { clamp } from "scenerystack/dot";
 import { Color } from "scenerystack/scenery";
 
-/** Solar altitude (°) at the start of civil twilight (Sun at horizon = 0). */
+/**
+ * Solar altitude (°) at the start of civil twilight (Sun at horizon = 0).
+ * @internal Exported for unit tests; not part of the application API.
+ */
 export const CIVIL_TWILIGHT_DEG = -6;
 
 /** Solar altitude (°) at the start of astronomical twilight / end of night. */
@@ -49,6 +52,7 @@ const smoothstep = (value: number, lo: number, hi: number): number => {
 /**
  * Star / constellation opacity: fully visible below astronomical twilight,
  * fully gone once the Sun is above the horizon. Civil/nautical bands fade.
+ * @internal Exported for unit tests; not part of the application API.
  */
 export const starVisibilityFromSolarAltitude = (solarAltitudeDeg: number): number => {
   if (solarAltitudeDeg <= ASTRONOMICAL_TWILIGHT_DEG) {

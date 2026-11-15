@@ -16,7 +16,10 @@ export type ObjectSearchEntry = {
   readonly name: string;
 };
 
-/** Lowercase and strip combining diacritics for forgiving matching. */
+/**
+ * Lowercase and strip combining diacritics for forgiving matching.
+ * @internal Exported for unit tests; not part of the application API.
+ */
 export const normalizeSearchText = (text: string): string =>
   text
     .normalize("NFD")

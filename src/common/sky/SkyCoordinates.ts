@@ -171,7 +171,10 @@ export const horizontalToEquatorial = (
   return { raHours: normalizeHours(lstHours - haHours), decDeg: radToDeg(dec) };
 };
 
-/** Altitude (degrees) of a star at the given hour angle — used for culmination. */
+/**
+ * Altitude (degrees) of a star at the given hour angle — used for culmination.
+ * @internal Exported for unit tests; not part of the application API.
+ */
 export const altitudeAtHourAngle = (decDeg: number, latitudeDeg: number, hourAngleHours: number): number => {
   const dec = degToRad(decDeg);
   const lat = degToRad(latitudeDeg);
@@ -184,6 +187,7 @@ export const altitudeAtHourAngle = (decDeg: number, latitudeDeg: number, hourAng
  * Classifies a declination at a latitude as circumpolar (never sets), never
  * rising, or rising-and-setting, by comparing the altitudes at upper (H = 0) and
  * lower (H = 12h) culmination against the horizon.
+ * @internal Exported for unit tests; not part of the application API.
  */
 export const declinationBand = (decDeg: number, latitudeDeg: number): DeclinationBand => {
   const maxAlt = altitudeAtHourAngle(decDeg, latitudeDeg, 0);

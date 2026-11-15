@@ -16,6 +16,7 @@ const HORIZON_SAMPLE_STEP_DEG = 2;
 /**
  * Circle (center + radius) through three points, or null when they are collinear.
  * Geometrically the unique circumcircle when the points are non-collinear.
+ * @internal Exported for unit tests; not part of the application API.
  */
 export const circleThroughPoints = (a: Vector2, b: Vector2, c: Vector2): { center: Vector2; radius: number } | null => {
   const d = 2 * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));

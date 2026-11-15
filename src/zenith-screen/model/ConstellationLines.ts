@@ -115,7 +115,10 @@ export type ConstellationFigure = {
   readonly segments: readonly ConstellationSegment[];
 };
 
-/** Stars referenced by constellation stick figures (not labeled in the UI). */
+/**
+ * Stars referenced by constellation stick figures (not labeled in the UI).
+ * @public
+ */
 export const CONSTELLATION_STARS: Readonly<Record<string, ConstellationStar>> = {
   hip677: { id: "hip677", raHours: 0.139769, decDeg: 29.090833 },
   hip746: { id: "hip746", raHours: 0.152803, decDeg: 59.150222 },
