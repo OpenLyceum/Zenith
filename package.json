@@ -48,15 +48,14 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "astronomy-engine": "^2.1.19",
-    "scenerystack": "^3.0.0"
+    "scenerystack": "^3.0.0",
+    "astronomy-engine": "^2.1.19"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.7",
     "@playwright/test": "^1.65.0",
     "@swc/core": "^1.15.3",
     "@types/node": "^26.6.6",
-    "@vitest/coverage-v8": "^5.1.0",
     "dependency-cruiser": "^18.7.2",
     "happy-dom": "^21.0.4",
     "knip": "^6.45.1",
@@ -65,7 +64,8 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vite-plugin-pwa": "^2.0.0",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0",
+    "@vitest/coverage-v8": "^5.1.0"
   },
   "engines": {
     "node": ">=26"
