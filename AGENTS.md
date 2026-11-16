@@ -50,6 +50,7 @@ Follows the shared [OpenLyceum accessibility convention](https://github.com/Open
 
 ## Compliance carve-outs
 
+- `.github/workflows/ci.yml`: `unused-mode: advisory` until both Knip default and production baselines are reviewed and cleared ([Baton/doc/knip.md](https://github.com/OpenLyceum/Baton/blob/main/doc/knip.md)).
 - **Hardcoded colors:** `#ffffff` pin stroke in `ObserverLocationNode.ts` — fixed white ring for map legibility on both land and ocean fills; not a profile theme token. Invisible hit targets use `Color.TRANSPARENT`, not a literal `rgba(0,0,0,0)`.
 - `vitest.config.ts`: adds a v8 `coverage` block for `npm run test:coverage` that excludes the generated star/shore catalogs; otherwise the template config.
 
