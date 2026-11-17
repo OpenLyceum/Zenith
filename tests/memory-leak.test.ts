@@ -3,13 +3,19 @@
  */
 
 import { Bounds2 } from "scenerystack/dot";
-import { Text } from "scenerystack/scenery";
+import { Node, Text } from "scenerystack/scenery";
 import { describe, expect, it } from "vitest";
 import { TimeModel } from "../src/common/TimeModel.js";
 import { ZenithPreferencesModel } from "../src/preferences/ZenithPreferencesModel.js";
 import { ZenithModel } from "../src/zenith-screen/model/ZenithModel.js";
+import { CelestialLinesNode } from "../src/zenith-screen/view/CelestialLinesNode.js";
+import { CivilDateTimeControl } from "../src/zenith-screen/view/CivilDateTimeControl.js";
+import { ObjectNameSearch } from "../src/zenith-screen/view/ObjectNameSearch.js";
+import { ObserverLocationNode } from "../src/zenith-screen/view/ObserverLocationNode.js";
 import { PlanetariumSkyNode } from "../src/zenith-screen/view/PlanetariumSkyNode.js";
 import { SelectedObjectReadout } from "../src/zenith-screen/view/SelectedObjectReadout.js";
+import { TimeControlPanel } from "../src/zenith-screen/view/TimeControlPanel.js";
+import { ZenithScreenSummaryContent } from "../src/zenith-screen/view/ZenithScreenSummaryContent.js";
 import { ZenithScreenView } from "../src/zenith-screen/view/ZenithScreenView.js";
 import { describeDisposalLeaks, forceGC } from "./helpers/memoryLeak.js";
 
@@ -215,4 +221,41 @@ describe("Memory leak regression", () => {
   });
 });
 
-describeDisposalLeaks([{ name: "TimeModel", create: () => new TimeModel(), idempotentDispose: true }]);
+const zenithPreferences = new ZenithPreferencesModel();
+const zenithModel = new ZenithModel(zenithPreferences);
+zenithModel.timer.isPlayingProperty.value = false;
+const listParent = new Node();
+
+describeDisposalLeaks([
+  { name: "TimeModel", create: () => new TimeModel(), idempotentDispose: true },
+  {
+    name: "CelestialLinesNode",
+    create: () => new CelestialLinesNode(zenithModel),
+    keepAlive: () => [zenithModel],
+  },
+  {
+    name: "CivilDateTimeControl",
+    create: () => new CivilDateTimeControl(zenithModel),
+    keepAlive: () => [zenithModel],
+  },
+  {
+    name: "ObjectNameSearch",
+    create: () => new ObjectNameSearch(zenithModel),
+    keepAlive: () => [zenithModel],
+  },
+  {
+    name: "ObserverLocationNode",
+    create: () => new ObserverLocationNode(zenithModel.latitudeProperty, zenithModel.longitudeProperty),
+    keepAlive: () => [zenithModel],
+  },
+  {
+    name: "TimeControlPanel",
+    create: () => new TimeControlPanel(zenithModel, listParent),
+    keepAlive: () => [zenithModel, listParent],
+  },
+  {
+    name: "ZenithScreenSummaryContent",
+    create: () => new ZenithScreenSummaryContent(zenithModel),
+    keepAlive: () => [zenithModel],
+  },
+]);
