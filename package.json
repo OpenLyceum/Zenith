@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "SceneryStack planetarium renderer \u2014 project the night sky for an observer on Earth.",
+  "description": "SceneryStack planetarium renderer — project the night sky for an observer on Earth.",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
@@ -39,14 +39,14 @@
     "test:fuzz": "node scripts/test-fuzz.ts",
     "test:fuzz:quick": "node scripts/test-fuzz.ts 10",
     "test:fuzz:long": "node scripts/test-fuzz.ts 300",
+    "test:soak": "npx playwright test tests/browser/memory-soak.spec.ts",
     "icons": "node scripts/generate-icons.ts",
     "clean": "rm -rf dist",
     "prepare": "test \"$(git rev-parse --show-toplevel 2>/dev/null)\" = \"$PWD\" && git config core.hooksPath .githooks || true",
     "knip": "knip",
     "test:architecture": "node --test tests/*.node-test.ts",
     "constellations": "node scripts/generate-constellation-figures.ts",
-    "test:coverage": "vitest run --coverage",
-    "test:soak": "npx playwright test tests/browser/memory-soak.spec.ts"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "astronomy-engine": "^2.1.19",
