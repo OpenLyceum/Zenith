@@ -50,7 +50,6 @@ Follows the shared [OpenLyceum accessibility convention](https://github.com/Open
 
 ## Compliance carve-outs
 
-- **Hardcoded colors:** `#ffffff` pin stroke in `ObserverLocationNode.ts` — fixed white ring for map legibility on both land and ocean fills; not a profile theme token. Invisible hit targets use `Color.TRANSPARENT`, not a literal `rgba(0,0,0,0)`.
 - `vitest.config.ts`: adds a v8 `coverage` block for `npm run test:coverage` that excludes the generated star/shore catalogs; otherwise the template config, including its drift guards.
 
 **Color pairing gotcha:** `LIGHT_SURFACE_TEXT_FILL` (`controlSurfaceText`, near-black) is only for text on the *white* control surfaces — combo items, flat-button labels, editable field values. Anything drawn on the dark `panelBackground` fill takes `ZenithColors.textColorProperty`. Mixing these up yields ~1:1 contrast and is invisible rather than merely ugly (see the `ObjectNameSearch` result rows).
