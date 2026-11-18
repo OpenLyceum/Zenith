@@ -9,7 +9,6 @@
 import {
   DerivedProperty,
   DynamicProperty,
-  Multilink,
   PatternStringProperty,
   Property,
   type TReadOnlyProperty,
@@ -47,18 +46,23 @@ const resolveStarName = (id: string, stars: ReturnType<StringManager["getStars"]
   return stars[key] as TReadOnlyProperty<string>;
 };
 
-const objectName = (
+/**
+ * The localized name Property of the selection (or the empty-selection label).
+ * The readout follows this Property itself, so a language change updates the
+ * name whatever order the string Properties change in.
+ */
+const objectNameProperty = (
   selected: SelectedSkyObject | null,
   stars: ReturnType<StringManager["getStars"]>,
-  noneLabel: string,
-): string => {
+  noneLabelProperty: TReadOnlyProperty<string>,
+): TReadOnlyProperty<string> => {
   if (!selected) {
-    return noneLabel;
+    return noneLabelProperty;
   }
   if (selected.kind === "star") {
-    return resolveStarName(selected.id, stars).value;
+    return resolveStarName(selected.id, stars);
   }
-  return bodyNameProperty(selected.id).value;
+  return bodyNameProperty(selected.id);
 };
 
 const buildCoords = (
@@ -216,15 +220,10 @@ export class SelectedObjectReadout extends Node {
     const labelFont = new PhetFont(CONTROL_FONT_SIZE);
     const maxWidth = CONTROL_PANEL_WIDTH - 40;
 
-    const nameProperty = new Property(
-      objectName(model.selectedObjectProperty.value, stars, controls.selectedNoneStringProperty.value),
+    const nameSourceProperty = new DerivedProperty([model.selectedObjectProperty], (selected) =>
+      objectNameProperty(selected, stars, controls.selectedNoneStringProperty),
     );
-    const nameMultilink = Multilink.multilink(
-      [model.selectedObjectProperty, controls.selectedNoneStringProperty],
-      (selected, noneLabel) => {
-        nameProperty.value = objectName(selected, stars, noneLabel);
-      },
-    );
+    const nameProperty = new DynamicProperty(nameSourceProperty);
 
     const coordsProperty = new DerivedProperty(
       [
@@ -516,7 +515,6 @@ export class SelectedObjectReadout extends Node {
       visibilityProperty.unlink(onVisibility);
       coordsProperty.unlink(onCoords);
       elongationProperty.unlink(onElongation);
-      nameMultilink.dispose();
     });
     // 2. Pattern Properties (their Text readers are disposed by dispose() first).
     this.disposers.push(() => {
@@ -535,6 +533,8 @@ export class SelectedObjectReadout extends Node {
         typeNameProperty,
         constellationNameProperty,
         constellationSourceProperty,
+        nameProperty,
+        nameSourceProperty,
         elongDegProperty,
         elongDirProperty,
         riseTimeProperty,
@@ -556,7 +556,6 @@ export class SelectedObjectReadout extends Node {
       visibilityProperty.dispose();
       elongationProperty.dispose();
       trackEnabledProperty.dispose();
-      nameProperty.dispose();
     });
   }
 
