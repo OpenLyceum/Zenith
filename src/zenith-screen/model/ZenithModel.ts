@@ -87,7 +87,7 @@ export type SkySnapshot = {
 
 export class ZenithModel implements TModel {
   /** Play/pause + elapsed simulation time for sky animation. Starts playing. */
-  public readonly timer = new TimeModel(true);
+  public readonly timer = new TimeModel({ initiallyPlaying: true });
 
   /**
    * Index into {@link TIME_RATE_MULTIPLIERS}. Stepping this down/up walks the
