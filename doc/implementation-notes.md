@@ -248,7 +248,8 @@ Example classroom link:
 
 ## Testing
 
-`npm test` covers `ZenithModel`, `BrightStarProjection`, `objectSearch`, keyboard shortcuts, and
+`npm test` covers `ZenithModel`, `BrightStarCatalog` / `SkyCoordinates` (see
+`tests/BrightStarProjection.test.ts`), `SkyProjection`, `objectSearch`, keyboard shortcuts, and
 memory-leak regression.
 
 ## Deferred
