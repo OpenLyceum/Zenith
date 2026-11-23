@@ -74,7 +74,7 @@ export type AttachPlanetariumInteractionOptions = {
 
 /** True when the DOM event reports the given modifier (mouse / pointer / keyboard / wheel). */
 const domModifier = (domEvent: Event | null | undefined, key: "ctrlKey" | "metaKey" | "shiftKey"): boolean =>
-  !!domEvent && key in domEvent && !!(domEvent as unknown as Record<string, boolean>)[key];
+  (domEvent instanceof MouseEvent || domEvent instanceof KeyboardEvent) && domEvent[key];
 
 /** Return value of {@link attachPlanetariumInteraction}. `target` is the same node passed in, for convenience. `dispose` tears down every listener the call attached. */
 export type AttachedPlanetariumInteraction<T extends Node> = {
