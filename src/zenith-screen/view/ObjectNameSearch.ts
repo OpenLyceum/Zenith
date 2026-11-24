@@ -24,6 +24,7 @@ import { StringUtils } from "scenerystack/phetcommon";
 import type { OneKeyStroke } from "scenerystack/scenery";
 import { Color, KeyboardListener, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
+import { bodyNameProperty } from "../../common/bodyName.js";
 import { LIGHT_SURFACE_TEXT_FILL } from "../../common/ZenithButtonOptions.js";
 import { ZenithPanel } from "../../common/ZenithPanel.js";
 import { StringManager } from "../../i18n/StringManager.js";
@@ -34,6 +35,7 @@ import { rankObjects } from "../model/objectSearch.js";
 import type { SelectedSkyObject } from "../model/SelectedSkyObject.js";
 import { SOLAR_SYSTEM_BODIES } from "../model/SolarSystemBodies.js";
 import type { ZenithModel } from "../model/ZenithModel.js";
+import { starNameProperty } from "./skyObjectNames.js";
 
 /** Single-key strokes the field reacts to. Letters register both plain and
  *  Shifted so typing works regardless of Shift / Caps Lock state. */
@@ -66,8 +68,6 @@ export class ObjectNameSearch extends Node {
     const stringManager = StringManager.getInstance();
     const controls = stringManager.getControls();
     const a11y = stringManager.getA11yStrings();
-    const bodies = stringManager.getBodies();
-    const stars = stringManager.getStars();
 
     const entries: Entry[] = [
       ...NAMED_BRIGHT_STARS.map((star) => ({
@@ -78,11 +78,11 @@ export class ObjectNameSearch extends Node {
           decDeg: star.decDeg,
           mag: star.mag,
         } satisfies SelectedSkyObject,
-        nameProperty: stars[`${star.id}StringProperty` as keyof typeof stars] as TReadOnlyProperty<string>,
+        nameProperty: starNameProperty(star.id),
       })),
       ...SOLAR_SYSTEM_BODIES.map((body) => ({
         selected: { kind: "planet", id: body.id } satisfies SelectedSkyObject,
-        nameProperty: bodies[`${body.id}StringProperty` as keyof typeof bodies] as TReadOnlyProperty<string>,
+        nameProperty: bodyNameProperty(body.id),
       })),
     ];
 

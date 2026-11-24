@@ -58,6 +58,7 @@ import type { SelectedSkyObject } from "../model/SelectedSkyObject.js";
 import type { ZenithModel } from "../model/ZenithModel.js";
 import type { PlanetariumSkyNode } from "./PlanetariumSkyNode.js";
 import { wrapLookAzimuth } from "./SkyProjection.js";
+import { starNameProperty } from "./skyObjectNames.js";
 
 /** Max pointer travel (view px) still treated as a click rather than a pan. */
 const CLICK_MOVE_THRESHOLD_PX = 6;
@@ -89,16 +90,11 @@ const announceSelection = (target: Node, model: ZenithModel, selected: SelectedS
     return;
   }
 
-  const stars = StringManager.getInstance().getStars();
-
   const eq = model.equatorialOfSelected(selected);
   if (!eq) {
     return;
   }
-  const name =
-    selected.kind === "star"
-      ? (stars[`${selected.id}StringProperty` as keyof typeof stars] as TReadOnlyProperty<string>).value
-      : bodyNameProperty(selected.id).value;
+  const name = selected.kind === "star" ? starNameProperty(selected.id).value : bodyNameProperty(selected.id).value;
 
   const lat = model.latitudeProperty.value;
   const lst = model.localSiderealTimeHoursProperty.value;

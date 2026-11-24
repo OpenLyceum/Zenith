@@ -204,7 +204,7 @@ describe("ZenithModel", () => {
   });
 
   it("tracking centers the look on the selected object and follows it as time advances", () => {
-    const vega = { kind: "star" as const, id: "vega", raHours: 18.6153, decDeg: 38.7837, mag: 0.03 };
+    const vega = { kind: "star", id: "vega", raHours: 18.6153, decDeg: 38.7837, mag: 0.03 } as const;
     // Hide the horizon so the look altitude is unclamped and matches exactly.
     model.showHorizonProperty.value = false;
     model.selectedObjectProperty.value = vega;

@@ -29,6 +29,7 @@ import ZenithColors from "../../ZenithColors.js";
 import { CONTROL_FONT_SIZE, CONTROL_PANEL_WIDTH, SIDEREAL_HOURS_PER_SOLAR_HOUR } from "../../ZenithConstants.js";
 import type { SelectedSkyObject } from "../model/SelectedSkyObject.js";
 import type { ZenithModel } from "../model/ZenithModel.js";
+import { starNameProperty } from "./skyObjectNames.js";
 
 const MS_PER_HOUR = 3600 * 1000;
 
@@ -41,11 +42,6 @@ type SelectionCoords = {
   azDeg: number;
 };
 
-const resolveStarName = (id: string, stars: ReturnType<StringManager["getStars"]>): TReadOnlyProperty<string> => {
-  const key = `${id}StringProperty` as keyof typeof stars;
-  return stars[key] as TReadOnlyProperty<string>;
-};
-
 /**
  * The localized name Property of the selection (or the empty-selection label).
  * The readout follows this Property itself, so a language change updates the
@@ -53,14 +49,13 @@ const resolveStarName = (id: string, stars: ReturnType<StringManager["getStars"]
  */
 const objectNameProperty = (
   selected: SelectedSkyObject | null,
-  stars: ReturnType<StringManager["getStars"]>,
   noneLabelProperty: TReadOnlyProperty<string>,
 ): TReadOnlyProperty<string> => {
   if (!selected) {
     return noneLabelProperty;
   }
   if (selected.kind === "star") {
-    return resolveStarName(selected.id, stars);
+    return starNameProperty(selected.id);
   }
   return bodyNameProperty(selected.id);
 };
@@ -216,12 +211,11 @@ export class SelectedObjectReadout extends Node {
     const stringManager = StringManager.getInstance();
     const controls = stringManager.getControls();
     const a11y = stringManager.getA11yStrings();
-    const stars = stringManager.getStars();
     const labelFont = new PhetFont(CONTROL_FONT_SIZE);
     const maxWidth = CONTROL_PANEL_WIDTH - 40;
 
     const nameSourceProperty = new DerivedProperty([model.selectedObjectProperty], (selected) =>
-      objectNameProperty(selected, stars, controls.selectedNoneStringProperty),
+      objectNameProperty(selected, controls.selectedNoneStringProperty),
     );
     const nameProperty = new DynamicProperty(nameSourceProperty);
 
@@ -266,17 +260,14 @@ export class SelectedObjectReadout extends Node {
     // Constellation of the current position, localized via the `constellations`
     // string group. Planets drift between constellations as time advances, so
     // this re-resolves from the live equatorial coordinates.
-    const constellations = stringManager.getConstellations();
+    const constellations = new Map(Object.entries(stringManager.getConstellations()));
     const constellationSourceProperty = new DerivedProperty([coordsProperty], (s): TReadOnlyProperty<string> => {
       if (s.kind === "none") {
         return controls.selectedNoneStringProperty; // hidden while unselected; harmless placeholder
       }
       const j2000 = rotateEquatorial(s.raHours, s.decDeg, model.precessionMatrix, true);
       const { key, name } = constellationAt(j2000.raHours, j2000.decDeg);
-      const localized = constellations[`${key}StringProperty` as keyof typeof constellations] as
-        | TReadOnlyProperty<string>
-        | undefined;
-      return localized ?? new Property(name);
+      return constellations.get(`${key}StringProperty`) ?? new Property(name);
     });
     const constellationNameProperty = new DynamicProperty(constellationSourceProperty);
 

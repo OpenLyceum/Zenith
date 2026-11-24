@@ -8,9 +8,11 @@
 
 import type { PlanetBodyId } from "../../common/sky/PlanetEphemeris.js";
 
+import type { NamedStarId } from "./NamedBrightStars.js";
+
 type SelectedNamedStar = {
   readonly kind: "star";
-  readonly id: string;
+  readonly id: NamedStarId;
   readonly raHours: number;
   readonly decDeg: number;
   readonly mag: number;
