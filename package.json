@@ -41,7 +41,7 @@
     "start": "vite",
     "test": "vitest run",
     "test:architecture": "node --test tests/*.node-test.ts",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --config vitest.coverage.config.ts --coverage",
     "test:fuzz": "node scripts/test-fuzz.ts",
     "test:fuzz:long": "node scripts/test-fuzz.ts 300",
     "test:fuzz:quick": "node scripts/test-fuzz.ts 10",
