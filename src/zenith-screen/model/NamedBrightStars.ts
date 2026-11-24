@@ -18,7 +18,7 @@ export type NamedBrightStar = {
  * Coordinates are J2000 (hours / degrees), matching BrightStarCatalog. Both are
  * precessed to the mean equator of date for horizontal projection.
  */
-export const NAMED_BRIGHT_STARS: readonly NamedBrightStar[] = [
+export const NAMED_BRIGHT_STARS = [
   { id: "polaris", raHours: 2.5303, decDeg: 89.2641, mag: 1.97 },
   { id: "sirius", raHours: 6.7525, decDeg: -16.7161, mag: -1.46 },
   { id: "canopus", raHours: 6.3992, decDeg: -52.6957, mag: -0.74 },
@@ -57,7 +57,9 @@ export const NAMED_BRIGHT_STARS: readonly NamedBrightStar[] = [
   { id: "mimosa", raHours: 12.7954, decDeg: -59.6888, mag: 1.25 },
   { id: "gacrux", raHours: 12.5194, decDeg: -57.1132, mag: 1.59 },
   { id: "deltaCru", raHours: 12.2524, decDeg: -58.7489, mag: 2.8 },
-];
+] as const satisfies readonly NamedBrightStar[];
+
+export type NamedStarId = (typeof NAMED_BRIGHT_STARS)[number]["id"];
 
 export const namedStarById = (id: string): NamedBrightStar | undefined =>
   NAMED_BRIGHT_STARS.find((star) => star.id === id);

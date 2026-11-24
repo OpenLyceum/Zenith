@@ -6,7 +6,7 @@
  */
 
 import { BooleanProperty } from "scenerystack/axon";
-import { type Bounds2, toFixed } from "scenerystack/dot";
+import { type Bounds2, roundSymmetric, toFixed } from "scenerystack/dot";
 import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { StringUtils } from "scenerystack/phetcommon";
 import { GridBox, HBox, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
@@ -352,8 +352,8 @@ export class ZenithScreenView extends ScreenView {
         useMyLocationButton.addAccessibleResponse(a11y.controls.useMyLocationPendingStringProperty);
         resolveObserverLocation()
           .then(({ latitudeDeg, longitudeDeg }) => {
-            const lat = LATITUDE_RANGE.constrainValue(Math.round(latitudeDeg * 10) / 10);
-            const lon = LONGITUDE_RANGE.constrainValue(Math.round(longitudeDeg * 10) / 10);
+            const lat = LATITUDE_RANGE.constrainValue(roundSymmetric(latitudeDeg * 10) / 10);
+            const lon = LONGITUDE_RANGE.constrainValue(roundSymmetric(longitudeDeg * 10) / 10);
             model.latitudeProperty.value = lat;
             model.longitudeProperty.value = lon;
             // One-shot announcement: a plain filled-in string, not a per-click

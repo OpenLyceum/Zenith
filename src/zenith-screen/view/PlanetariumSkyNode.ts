@@ -12,10 +12,11 @@
  */
 
 import type { TReadOnlyProperty } from "scenerystack/axon";
-import { type Bounds2, clamp, Vector2 } from "scenerystack/dot";
+import { type Bounds2, clamp, roundSymmetric, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
 import { Circle, LinearGradient, Node, Path, Rectangle, Text } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
+import { bodyNameProperty } from "../../common/bodyName.js";
 import { type PrecessionMatrix, rotateEquatorial } from "../../common/sky/Precession.js";
 import {
   type EquatorialCoordinates,
@@ -48,7 +49,7 @@ import {
   BRIGHT_STAR_MAG,
   BRIGHT_STAR_RA_HOURS,
 } from "../model/BrightStarCatalog.js";
-import { CONSTELLATION_FIGURES, type ConstellationId, constellationStarById } from "../model/ConstellationLines.js";
+import { CONSTELLATION_FIGURES, constellationStarById } from "../model/ConstellationLines.js";
 import { getDeepStarData } from "../model/DeepStarCatalog.js";
 import { NAMED_BRIGHT_STARS, namedStarById } from "../model/NamedBrightStars.js";
 import type { SelectedSkyObject } from "../model/SelectedSkyObject.js";
@@ -64,6 +65,7 @@ import {
   placeAltitudeLabel,
   placeAzimuthLabel,
 } from "./sky-labels.js";
+import { constellationNameProperty, starNameProperty } from "./skyObjectNames.js";
 
 const LABEL_FONT = new PhetFont(11);
 const GRID_LABEL_FONT = new PhetFont({ size: 11, weight: "bold" });
@@ -309,12 +311,6 @@ export class PlanetariumSkyNode extends Node {
     this.planetsNode = new PlanetariumPlanetsNode(model);
     this.celestialLinesNode = new CelestialLinesNode(model);
 
-    const stars = StringManager.getInstance().getStars();
-    const starNameProperty = (id: string): TReadOnlyProperty<string> => {
-      const key = `${id}StringProperty` as keyof typeof stars;
-      return stars[key] as TReadOnlyProperty<string>;
-    };
-
     this.starLabelNodes = NAMED_BRIGHT_STARS.map((star) => ({
       starId: star.id,
       label: new Text(starNameProperty(star.id), {
@@ -329,11 +325,6 @@ export class PlanetariumSkyNode extends Node {
       pickable: false,
     });
 
-    const constellations = StringManager.getInstance().getConstellations();
-    const constellationNameProperty = (id: ConstellationId): TReadOnlyProperty<string> => {
-      const key = `${id}StringProperty` as keyof typeof constellations;
-      return constellations[key] as TReadOnlyProperty<string>;
-    };
     this.constellationLabelNodes = CONSTELLATION_FIGURES.map((figure) => ({
       starIds: [...new Set(figure.segments.flatMap((segment) => [segment.fromId, segment.toId]))],
       label: new Text(constellationNameProperty(figure.id), {
@@ -657,14 +648,7 @@ export class PlanetariumSkyNode extends Node {
 
   /** Localized display name for a hovered/selected object. */
   private objectDisplayName(selected: SelectedSkyObject): string {
-    if (selected.kind === "star") {
-      const stars = StringManager.getInstance().getStars();
-      const key = `${selected.id}StringProperty` as keyof typeof stars;
-      return (stars[key] as TReadOnlyProperty<string>).value;
-    }
-    const bodies = StringManager.getInstance().getBodies();
-    const key = `${selected.id}StringProperty` as keyof typeof bodies;
-    return (bodies[key] as TReadOnlyProperty<string>).value;
+    return (selected.kind === "star" ? starNameProperty(selected.id) : bodyNameProperty(selected.id)).value;
   }
 
   /**
@@ -746,12 +730,12 @@ export class PlanetariumSkyNode extends Node {
 
   private altAzGridShape(): Shape {
     const shape = new Shape();
-    const azSteps = Math.round(360 / AZIMUTH_SWEEP_STEP_DEG);
+    const azSteps = roundSymmetric(360 / AZIMUTH_SWEEP_STEP_DEG);
     // With the horizon (ground) hidden the lower hemisphere is in view, so sweep
     // the grid down below alt 0 as well to keep that region populated; otherwise
     // the grid stops at the horizon where the ground takes over.
     const altMin = this.model.showHorizonProperty.value ? 0 : -ALT_AZ_GRID_ALT_MAX_DEG;
-    const altSteps = Math.round((ALT_AZ_GRID_ALT_MAX_DEG - altMin) / MERIDIAN_ALT_STEP_DEG);
+    const altSteps = roundSymmetric((ALT_AZ_GRID_ALT_MAX_DEG - altMin) / MERIDIAN_ALT_STEP_DEG);
 
     // Altitude parallels: constant altitude, swept in azimuth.
     for (let alt = altMin; alt < ALT_AZ_GRID_ALT_MAX_DEG; alt += ALT_AZ_GRID_ALT_STEP_DEG) {
