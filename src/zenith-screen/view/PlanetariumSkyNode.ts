@@ -12,7 +12,7 @@
  */
 
 import type { TReadOnlyProperty } from "scenerystack/axon";
-import { type Bounds2, clamp, Vector2 } from "scenerystack/dot";
+import { type Bounds2, clamp, roundSymmetric, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
 import { Circle, LinearGradient, Node, Path, Rectangle, Text } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
@@ -730,12 +730,12 @@ export class PlanetariumSkyNode extends Node {
 
   private altAzGridShape(): Shape {
     const shape = new Shape();
-    const azSteps = Math.round(360 / AZIMUTH_SWEEP_STEP_DEG);
+    const azSteps = roundSymmetric(360 / AZIMUTH_SWEEP_STEP_DEG);
     // With the horizon (ground) hidden the lower hemisphere is in view, so sweep
     // the grid down below alt 0 as well to keep that region populated; otherwise
     // the grid stops at the horizon where the ground takes over.
     const altMin = this.model.showHorizonProperty.value ? 0 : -ALT_AZ_GRID_ALT_MAX_DEG;
-    const altSteps = Math.round((ALT_AZ_GRID_ALT_MAX_DEG - altMin) / MERIDIAN_ALT_STEP_DEG);
+    const altSteps = roundSymmetric((ALT_AZ_GRID_ALT_MAX_DEG - altMin) / MERIDIAN_ALT_STEP_DEG);
 
     // Altitude parallels: constant altitude, swept in azimuth.
     for (let alt = altMin; alt < ALT_AZ_GRID_ALT_MAX_DEG; alt += ALT_AZ_GRID_ALT_STEP_DEG) {

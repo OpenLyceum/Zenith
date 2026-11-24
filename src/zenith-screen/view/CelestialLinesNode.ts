@@ -49,11 +49,11 @@ export class CelestialLinesNode extends Node {
   /**
    * Derived Properties backing {@link measureLabel}. Held so {@link dispose} can
    * tear them down: `Node.dispose()` only detaches children, so the label Text's
-   * string source (a `PatternStringProperty` over `separationText`, which in turn
+   * string source (a `PatternStringProperty` over `separationTextProperty`, which in turn
    * listens to `model.measureSeparationDegProperty`) would otherwise keep the
    * model and the localized measure string subscribed after the node is gone.
    */
-  private readonly separationText: TReadOnlyProperty<string>;
+  private readonly separationTextProperty: TReadOnlyProperty<string>;
   private readonly measureSeparationPattern: TReadOnlyProperty<string>;
 
   public constructor(model: ZenithModel) {
@@ -93,12 +93,12 @@ export class CelestialLinesNode extends Node {
       visible: false,
       pickable: false,
     });
-    this.separationText = new DerivedProperty([model.measureSeparationDegProperty], (deg) =>
+    this.separationTextProperty = new DerivedProperty([model.measureSeparationDegProperty], (deg) =>
       deg === null ? "" : toFixed(deg, 1),
     );
     this.measureSeparationPattern = new PatternStringProperty(
       StringManager.getInstance().getControls().measureSeparationStringProperty,
-      { deg: this.separationText },
+      { deg: this.separationTextProperty },
     );
     this.measureLabel = new Text(this.measureSeparationPattern, {
       font: MEASURE_LABEL_FONT,
@@ -123,14 +123,14 @@ export class CelestialLinesNode extends Node {
    * base `Node.dispose()` detaches the remaining children. The label Text is
    * disposed first so it stops forwarding to `measureSeparationPattern`; that
    * pattern is then free of listeners and safe to dispose, and finally
-   * `separationText` (its sole remaining dependency) is released — dropping the
+   * `separationTextProperty` (its sole remaining dependency) is released — dropping the
    * subscription on `model.measureSeparationDegProperty`. Idempotent via the
    * base class's disposed guard.
    */
   public override dispose(): void {
     this.measureLabel.dispose();
     this.measureSeparationPattern.dispose();
-    this.separationText.dispose();
+    this.separationTextProperty.dispose();
     super.dispose();
   }
 

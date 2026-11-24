@@ -6,7 +6,7 @@
  * every readout consistently. Pure functions with no Scenery / model deps.
  */
 
-import { toFixed } from "scenerystack/dot";
+import { roundSymmetric, toFixed } from "scenerystack/dot";
 import { StringUtils } from "scenerystack/phetcommon";
 
 const MINUTES_PER_HOUR = 60;
@@ -25,7 +25,7 @@ export const formatMag = (mag: number): string => toFixed(mag, 2);
  * Negative inputs are clamped to zero — used for rise/set/transit wait times.
  */
 export const formatDuration = (hours: number, hourPattern: string, minutePattern: string): string => {
-  const totalMin = Math.max(0, Math.round(hours * MINUTES_PER_HOUR));
+  const totalMin = Math.max(0, roundSymmetric(hours * MINUTES_PER_HOUR));
   const h = Math.floor(totalMin / MINUTES_PER_HOUR);
   const m = totalMin % MINUTES_PER_HOUR;
   const minutes = StringUtils.fillIn(minutePattern, { value: m });
