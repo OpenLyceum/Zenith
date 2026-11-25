@@ -9,18 +9,6 @@ export default defineConfig({
     // --expose-gc lets us call global.gc() to force garbage collection
     execArgv: ["--expose-gc"],
     testTimeout: 30_000,
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "html", "lcov"],
-      reportsDirectory: "./coverage",
-      include: ["src/**"],
-      exclude: [
-        "src/zenith-screen/view/EarthShoreData.ts", // generated, 210 KB
-        "src/zenith-screen/model/BrightStarCatalog.ts", // generated
-        "src/zenith-screen/model/DeepStarCatalog.ts", // generated
-        "src/zenith-screen/model/ConstellationLines.ts", // generated
-      ],
-    },
     // Drift guards (template-owned; see AGENTS.md → Testing):
     // a test that never calls expect() fails instead of passing vacuously,
     expect: { requireAssertions: true },

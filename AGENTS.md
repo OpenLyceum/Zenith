@@ -50,7 +50,7 @@ Follows the shared [OpenLyceum accessibility convention](https://github.com/Open
 
 ## Compliance carve-outs
 
-- `vitest.config.ts`: adds a v8 `coverage` block for `npm run test:coverage` that excludes the generated star/shore catalogs; otherwise the template config, including its drift guards.
+- `vitest.coverage.config.ts`: merges the template `vitest.config.ts` with a v8 coverage block for `npm run test:coverage` that excludes the generated star/shore catalogs. `vitest.config.ts` itself stays template-identical.
 
 **Color pairing gotcha:** `LIGHT_SURFACE_TEXT_FILL` (`controlSurfaceText`, near-black) is only for text on the *white* control surfaces — combo items, flat-button labels, editable field values. Anything drawn on the dark `panelBackground` fill takes `ZenithColors.textColorProperty`. Mixing these up yields ~1:1 contrast and is invisible rather than merely ugly (see the `ObjectNameSearch` result rows).
 
@@ -58,7 +58,8 @@ Follows the shared [OpenLyceum accessibility convention](https://github.com/Open
 
 | Path | Purpose |
 |---|---|
-| `vitest.config.ts` | Test environment + `setupFiles`; `execArgv: ["--expose-gc"]` with memory-leak suite |
+| `vitest.config.ts` | Template-identical: happy-dom, `setupFiles`, `execArgv: ["--expose-gc"]`, drift guards |
+| `vitest.coverage.config.ts` | Merges the template config with generated-catalog excludes for `npm run test:coverage` |
 | `tests/setup.ts` | Canvas / AudioContext mocks + `init({ name: "…" })` before SceneryStack imports |
 | `tests/**/*.test.ts` | Model/physics unit tests |
 | `tests/memory-leak.test.ts` | WeakRef + `forceGC` dispose regression (fleet pattern) |
